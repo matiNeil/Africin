@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Content } from "@/lib/data";
+import { useAuth } from "@/context/AuthContext";
+import { auth } from "@/lib/firebase";
 
 interface PaywallModalProps {
   content: Content;
@@ -10,24 +12,21 @@ interface PaywallModalProps {
   onClose?: () => void;
 }
 
-type PaymentMethod = "card" | "flutterwave" | "ecocash" | "innbucks";
+type PaymentMethod = "ecocash" | "onemoney" | "web";
 
 const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: string; description: string }[] = [
-  { id: "card",        label: "Card",          icon: "💳", description: "Visa / Mastercard / Amex" },
-  { id: "flutterwave", label: "Flutterwave",    icon: "🦋", description: "Pan-African payments" },
-  { id: "ecocash",     label: "EcoCash",        icon: "📱", description: "Zimbabwe mobile money" },
-  { id: "innbucks",    label: "InnBucks",       icon: "💚", description: "Zimbabwe — InnBucks wallet" },
+  { id: "ecocash",  label: "EcoCash",       icon: "📱", description: "Zimbabwe mobile money" },
+  { id: "onemoney", label: "OneMoney",      icon: "📲", description: "NetOne mobile money" },
+  { id: "web",      label: "Paynow Online", icon: "💳", description: "Visa / Mastercard via Paynow" },
 ];
 
 export default function PaywallModal({ content, onSuccess, onClose }: PaywallModalProps) {
-  const [step, setStep] = useState<"choose" | "pay" | "loading" | "success">("choose");
-  const [method, setMethod] = useState<PaymentMethod>("card");
-
-  // Card fields
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [name, setName] = useState("");
+  const { user } = useAuth();
+  const [step, setStep] = useState<"choose" | "pay" | "loading" | "polling" | "success">("choose");
+  const [method, setMethod] = useState<PaymentMethod>("ecocash");
+  const [error, setError] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Mobile money
   const [phone, setPhone] = useState("");
@@ -38,38 +37,93 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
     ? new Date(content.premiereDate).getTime() > Date.now()
     : false;
 
-  const handlePay = () => {
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const pollPayment = useCallback(async (purchaseId: string, token: string) => {
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch("/api/payments/poll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ purchaseId, authToken: token }),
+        });
+        const data = await res.json();
+        if (data.status === "paid") {
+          stopPolling();
+          setStep("success");
+        } else if (data.status === "failed") {
+          stopPolling();
+          setError("Payment was cancelled or failed. Please try again.");
+          setStep("pay");
+        }
+      } catch {
+        // keep polling
+      }
+    }, 5000);
+  }, [stopPolling]);
+
+  const handlePay = async () => {
+    setError("");
+
+    if (!user) {
+      setError("Please sign in first.");
+      return;
+    }
+
     setStep("loading");
-    setTimeout(() => setStep("success"), 2200);
+
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/payments/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentId: content.id,
+          method,
+          phone: (method === "ecocash" || method === "onemoney") ? phone : undefined,
+          authToken: token,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.alreadyPaid) {
+          setStep("success");
+          return;
+        }
+        throw new Error(data.error || "Payment failed");
+      }
+
+      if (data.redirectUrl) {
+        // Web checkout — redirect to Paynow
+        window.location.href = data.redirectUrl;
+      } else {
+        // Mobile money — show instructions and poll
+        setInstructions(data.instructions || "Check your phone for the USSD prompt.");
+        setStep("polling");
+        pollPayment(data.purchaseId, token!);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Payment failed");
+      setStep("pay");
+    }
   };
 
   const handleSuccessDone = () => {
-    // Store in localStorage so the watch page knows it's unlocked
-    const purchases: string[] = JSON.parse(
-      localStorage.getItem("africin_purchases") ?? "[]"
-    );
-    if (!purchases.includes(content.id)) purchases.push(content.id);
-    localStorage.setItem("africin_purchases", JSON.stringify(purchases));
+    stopPolling();
     onSuccess();
   };
-
-  const formatCard = (v: string) =>
-    v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
-
-  const formatExpiry = (v: string) =>
-    v.replace(/\D/g, "").slice(0, 4).replace(/^(\d{2})(\d)/, "$1/$2");
-
-  const isCardComplete =
-    cardNumber.replace(/\s/g, "").length === 16 &&
-    expiry.length === 5 &&
-    cvv.length >= 3 &&
-    name.trim().length > 1;
 
   const isMobileComplete = phone.replace(/\D/g, "").length >= 9;
 
   const canPay =
-    method === "card" ? isCardComplete
-    : method === "flutterwave" ? true
+    method === "web" ? true
     : isMobileComplete;
 
   return (
@@ -97,13 +151,17 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
               </svg>
             </div>
             <h2 className="text-white text-xl font-bold mb-1">Payment Successful!</h2>
-            <p className="text-gray-400 text-sm mb-1">You now have access to</p>
-            <p className="text-orange-400 font-semibold mb-6">{content.title}</p>
+            <p className="text-gray-400 text-sm mb-1">You&apos;ve pre-ordered</p>
+            <p className="text-red-500 font-semibold mb-2">{content.title}</p>
+            {isUpcoming
+              ? <p className="text-gray-500 text-xs mb-6">Your access unlocks on <span className="text-white">July 10, 2026</span>. Enjoy the free trailer until then!</p>
+              : <p className="text-gray-500 text-xs mb-6">You now have full access. Enjoy!</p>
+            }
             <button
               onClick={handleSuccessDone}
-              className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold py-3 rounded-xl transition-colors"
+              className="w-full bg-red-700 hover:bg-red-600 text-white font-semibold py-3 rounded-xl transition-colors"
             >
-              Watch Now
+              Done
             </button>
           </div>
         )}
@@ -111,9 +169,19 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
         {/* ── Loading state ── */}
         {step === "loading" && (
           <div className="p-8 flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full border-4 border-orange-500 border-t-transparent animate-spin mb-4" />
+            <div className="w-16 h-16 rounded-full border-4 border-red-600 border-t-transparent animate-spin mb-4" />
             <p className="text-white font-semibold">Processing payment…</p>
-            <p className="text-gray-400 text-sm mt-1">Please wait</p>
+            <p className="text-gray-400 text-sm mt-1">Connecting to Paynow</p>
+          </div>
+        )}
+
+        {/* ── Polling state (mobile money) ── */}
+        {step === "polling" && (
+          <div className="p-8 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-full border-4 border-red-500 border-t-transparent animate-spin mb-4" />
+            <p className="text-white font-semibold mb-2">Waiting for payment…</p>
+            <p className="text-gray-400 text-sm mb-4">{instructions}</p>
+            <p className="text-zinc-600 text-xs">This will update automatically when you confirm on your phone.</p>
           </div>
         )}
 
@@ -123,7 +191,7 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
             {/* Zimbabwe origin badge */}
             <div className="flex items-center gap-2 px-5 pt-4">
               <span className="text-lg">🇿🇼</span>
-              <span className="text-xs font-semibold tracking-wider text-amber-400 uppercase">From Zimbabwe</span>
+              <span className="text-xs font-semibold tracking-wider text-red-500 uppercase">From Zimbabwe</span>
             </div>
 
             {/* Header with content info */}
@@ -139,7 +207,7 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
               <div className="absolute bottom-0 left-0 right-0 p-4">
                 <div className="flex items-center gap-2 mb-1">
                   {content.premiere && (
-                    <span className="bg-orange-600 text-white text-xs font-bold px-2 py-0.5 rounded">
+                    <span className="bg-red-700 text-white text-xs font-bold px-2 py-0.5 rounded">
                       PREMIERE
                     </span>
                   )}
@@ -163,8 +231,9 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
               </div>
 
               {isUpcoming && (
-                <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3 mb-4 text-sm text-orange-300">
-                  🎬 This is an upcoming premiere. Payment will be charged on premiere day.
+                <div className="bg-red-700/10 border border-red-700/30 rounded-xl px-4 py-3 mb-4">
+                  <p className="text-red-400 text-sm font-semibold mb-1">🎬 Pre-Order Available Now</p>
+                  <p className="text-zinc-400 text-xs leading-relaxed">Pay today and secure your access. The film unlocks on <span className="text-white font-medium">July 10, 2026</span> — you can watch the trailer for free in the meantime.</p>
                 </div>
               )}
 
@@ -172,7 +241,7 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
               <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-3">
                 Pay with
               </p>
-              <p className="text-amber-500/70 text-[10px] mb-2 flex items-center gap-1">
+              <p className="text-red-500/70 text-[10px] mb-2 flex items-center gap-1">
                 <span>🇿🇼</span> Accepts Zimbabwean payment methods
               </p>
               <div className="grid grid-cols-2 gap-2 mb-5">
@@ -182,7 +251,7 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
                     onClick={() => setMethod(m.id)}
                     className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${
                       method === m.id
-                        ? "border-orange-500 bg-orange-500/10"
+                        ? "border-red-600 bg-red-600/10"
                         : "border-white/10 bg-white/5 hover:border-white/30"
                     }`}
                   >
@@ -197,7 +266,7 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
 
               <button
                 onClick={() => setStep("pay")}
-                className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold py-3 rounded-xl transition-colors"
+                className="w-full bg-red-700 hover:bg-red-600 text-white font-semibold py-3 rounded-xl transition-colors"
               >
                 Continue →
               </button>
@@ -232,85 +301,44 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
               </div>
             </div>
 
-            {method === "flutterwave" && (
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 mb-4 text-sm text-amber-300">
-                🦋 You will be redirected to Flutterwave to complete your payment securely.
-              </div>
-            )}
-
-            {method === "card" ? (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-gray-400 text-xs mb-1 block">Name on card</label>
-                  <input
-                    type="text"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-gray-400 text-xs mb-1 block">Card number</label>
-                  <input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(formatCard(e.target.value))}
-                    className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-gray-400 text-xs mb-1 block">Expiry</label>
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      value={expiry}
-                      onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                      className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-xs mb-1 block">CVV</label>
-                    <input
-                      type="password"
-                      placeholder="•••"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                      className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : method === "flutterwave" ? (
-              <div className="text-gray-400 text-sm text-center py-4">
-                Click <span className="text-white font-semibold">Pay</span> below to be redirected to Flutterwave.
+            {method === "web" ? (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4 text-sm text-red-400">
+                💳 You&apos;ll be redirected to Paynow to pay securely with Visa or Mastercard.
               </div>
             ) : (
               <div>
                 <label className="text-gray-400 text-xs mb-1 block">
-                  {method === "ecocash" ? "EcoCash" : "InnBucks"} number
+                  {method === "ecocash" ? "EcoCash" : "OneMoney"} number
                 </label>
                 <input
                   type="tel"
-                  placeholder={method === "ecocash" ? "+263 77 000 0000" : "+263 71 000 0000"}
+                  placeholder={method === "ecocash" ? "0771234567" : "0713456789"}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-600"
                 />
                 <p className="text-gray-500 text-xs mt-2">
-                  You will receive a USSD prompt on your Zimbabwean number to confirm.
+                  You&apos;ll receive a USSD prompt on your phone to confirm payment.
                 </p>
+              </div>
+            )}
+
+            {error && (
+              <p className="text-red-400 text-xs mt-3 mb-1">{error}</p>
+            )}
+
+            {!user && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mt-3 mb-1 text-sm text-red-400">
+                <a href="/auth" className="underline">Sign in</a> to complete your purchase.
               </div>
             )}
 
             <button
               onClick={handlePay}
-              disabled={!canPay}
-              className={`w-full mt-5 font-semibold py-3 rounded-xl transition-colors ${
-                canPay
-                  ? "bg-orange-600 hover:bg-orange-500 text-white"
+              disabled={!canPay || !user}
+              className={`w-full mt-4 font-semibold py-3 rounded-xl transition-colors ${
+                canPay && user
+                  ? "bg-red-700 hover:bg-red-600 text-white"
                   : "bg-white/10 text-gray-500 cursor-not-allowed"
               }`}
             >
@@ -318,7 +346,7 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
             </button>
 
             <p className="text-gray-600 text-xs text-center mt-3">
-              🔒 Secured by 256-bit SSL encryption
+              🔒 Secured by Paynow Zimbabwe
             </p>
           </div>
         )}

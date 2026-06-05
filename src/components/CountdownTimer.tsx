@@ -40,7 +40,7 @@ export default function CountdownTimer({ targetDate, className = "" }: Countdown
 
   if (!timeLeft) {
     return (
-      <span className={`text-orange-400 font-semibold ${className}`}>Available Now</span>
+      <span className={`text-red-500 font-semibold ${className}`}>Available Now</span>
     );
   }
 

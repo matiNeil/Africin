@@ -35,21 +35,21 @@ export default function ContentRow({ title, items, subtitle, viewAllHref }: Cont
               {cleanTitle}
             </h2>
             {/* Gold accent rule */}
-            <div className="mt-1.5 h-px w-16 bg-gradient-to-r from-amber-500 to-transparent" />
+            <div className="mt-1.5 h-px w-16 bg-gradient-to-r from-red-500 to-transparent" />
             {subtitle && (
               <p className="text-zinc-500 text-xs font-medium uppercase tracking-widest mt-2">{subtitle}</p>
             )}
           </div>
           <div className="flex items-center gap-3">
             {viewAllHref && (
-              <a href={viewAllHref} className="text-amber-500/70 hover:text-amber-400 text-xs font-medium uppercase tracking-widest transition-colors">
+              <a href={viewAllHref} className="text-red-500/70 hover:text-red-500 text-xs font-medium uppercase tracking-widest transition-colors">
                 View all
               </a>
             )}
             <div className="flex gap-1.5">
               <button
                 onClick={() => scroll("left")}
-                className="w-7 h-7 rounded-full border border-white/10 hover:border-amber-500/40 bg-white/5 hover:bg-amber-500/10 text-zinc-400 hover:text-amber-400 flex items-center justify-center transition-all duration-300"
+                className="w-7 h-7 rounded-full border border-white/10 hover:border-red-500/40 bg-white/5 hover:bg-red-500/10 text-zinc-400 hover:text-red-500 flex items-center justify-center transition-all duration-300"
                 aria-label="Scroll left"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,7 +58,7 @@ export default function ContentRow({ title, items, subtitle, viewAllHref }: Cont
               </button>
               <button
                 onClick={() => scroll("right")}
-                className="w-7 h-7 rounded-full border border-white/10 hover:border-amber-500/40 bg-white/5 hover:bg-amber-500/10 text-zinc-400 hover:text-amber-400 flex items-center justify-center transition-all duration-300"
+                className="w-7 h-7 rounded-full border border-white/10 hover:border-red-500/40 bg-white/5 hover:bg-red-500/10 text-zinc-400 hover:text-red-500 flex items-center justify-center transition-all duration-300"
                 aria-label="Scroll right"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

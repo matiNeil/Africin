@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import SplashScreen from "@/components/SplashScreen";
+import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({
@@ -24,14 +26,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${playfair.variable} font-sans bg-black text-white antialiased min-h-screen`}>
+        <AuthProvider>
+        <SplashScreen />
         <Navbar />
         {children}
         <footer className="border-t border-white/5 py-5 mt-auto">
           <p className="text-center text-gray-600 text-xs tracking-wide">
             Powered by{" "}
-            <span className="text-amber-500 font-semibold">ForgeStackX</span>
+            <span className="text-red-500 font-semibold">ForgeStackX</span>
           </p>
         </footer>
+        </AuthProvider>
       </body>
     </html>
   );

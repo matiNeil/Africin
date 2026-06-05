@@ -37,7 +37,7 @@ export default function BrowsePage() {
         {/* Header */}
         <div className="py-10">
           <h1 className="font-display font-semibold text-3xl sm:text-4xl text-white tracking-tight mb-1">Browse</h1>
-          <div className="h-px w-12 bg-gradient-to-r from-amber-500 to-transparent mt-2" />
+          <div className="h-px w-12 bg-gradient-to-r from-red-500 to-transparent mt-2" />
           <p className="text-zinc-500 text-xs uppercase tracking-widest mt-3">Explore African stories from across the continent</p>
         </div>
 
@@ -51,7 +51,7 @@ export default function BrowsePage() {
             placeholder="Search titles, descriptions…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/8 text-white placeholder-zinc-600 rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all"
+            className="w-full bg-white/5 border border-white/8 text-white placeholder-zinc-600 rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-red-500/50 transition-all"
           />
         </div>
 
@@ -62,7 +62,7 @@ export default function BrowsePage() {
             {(["all", "movie", "series"] as const).map((type) => (
               <button key={type} onClick={() => setSelectedType(type)}
                 className={`px-5 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-widest transition-all duration-300 ${
-                  selectedType === type ? "bg-amber-500 text-black" : "text-zinc-500 hover:text-white"
+                  selectedType === type ? "bg-red-500 text-black" : "text-zinc-500 hover:text-white"
                 }`}>
                 {type === "all" ? "All" : type === "movie" ? "Films" : "Series"}
               </button>
@@ -75,7 +75,7 @@ export default function BrowsePage() {
               <button key={genre} onClick={() => setSelectedGenre(genre)}
                 className={`px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300 ${
                   selectedGenre === genre
-                    ? "bg-amber-500/15 border border-amber-500/50 text-amber-400"
+                    ? "bg-red-500/15 border border-red-500/50 text-red-500"
                     : "border border-white/8 text-zinc-600 hover:border-white/20 hover:text-zinc-300"
                 }`}>
                 {genre}
@@ -89,7 +89,7 @@ export default function BrowsePage() {
               <button key={country} onClick={() => setSelectedCountry(country)}
                 className={`px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300 ${
                   selectedCountry === country
-                    ? "bg-amber-500/15 border border-amber-500/50 text-amber-400"
+                    ? "bg-red-500/15 border border-red-500/50 text-red-500"
                     : "border border-white/8 text-zinc-600 hover:border-white/20 hover:text-zinc-300"
                 }`}>
                 {country === "All" ? "All Countries" : country}
@@ -119,7 +119,7 @@ export default function BrowsePage() {
             </div>
             <h3 className="font-display text-xl text-zinc-500 mb-2">Nothing found</h3>
             <p className="text-zinc-700 text-sm mb-5">Try adjusting your filters</p>
-            <button onClick={clearAll} className="border border-amber-500/40 text-amber-400 text-xs uppercase tracking-widest px-5 py-2 rounded-full hover:bg-amber-500/10 transition-colors">
+            <button onClick={clearAll} className="border border-red-500/40 text-red-500 text-xs uppercase tracking-widest px-5 py-2 rounded-full hover:bg-red-500/10 transition-colors">
               Clear all
             </button>
           </div>

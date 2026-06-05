@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -35,16 +39,15 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="relative w-7 h-7">
-              <div className="absolute inset-0 rounded-full shimmer-gold opacity-90" />
-              <div className="absolute inset-[1.5px] rounded-full bg-black flex items-center justify-center">
-                <span className="font-display font-bold text-amber-400 text-xs tracking-tight">A</span>
-              </div>
-            </div>
-            <span className="font-display font-semibold text-lg tracking-wide text-white group-hover:text-amber-100 transition-colors duration-300">
-              afric<span className="text-gold">in</span>
-            </span>
+          <Link href="/" className="flex items-center group">
+            <Image
+              src="/logo.png"
+              alt="Africin"
+              width={200}
+              height={32}
+              className="object-contain h-8 w-auto [mix-blend-mode:screen]"
+              priority
+            />
           </Link>
 
           {/* Desktop nav */}
@@ -55,7 +58,7 @@ export default function Navbar() {
                 href={link.href}
                 className={`relative flex items-center gap-1.5 text-xs font-medium tracking-widest uppercase transition-all duration-300 ${
                   pathname === link.href
-                    ? "text-amber-400"
+                    ? "text-red-500"
                     : "text-zinc-400 hover:text-white"
                 }`}
               >
@@ -64,7 +67,7 @@ export default function Navbar() {
                 )}
                 {link.label}
                 {pathname === link.href && (
-                  <span className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-amber-500 to-transparent" />
+                  <span className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-red-500 to-transparent" />
                 )}
               </Link>
             ))}
@@ -74,7 +77,7 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             <Link
               href="/browse"
-              className="text-zinc-400 hover:text-amber-400 transition-colors duration-300"
+              className="text-zinc-400 hover:text-red-500 transition-colors duration-300"
               aria-label="Search"
             >
               <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,9 +85,74 @@ export default function Navbar() {
               </svg>
             </Link>
 
-            <button className="hidden sm:flex items-center gap-2 border border-amber-500/40 hover:border-amber-400 hover:bg-amber-500/8 text-amber-400 hover:text-amber-300 text-xs font-medium tracking-wider uppercase px-4 py-1.5 rounded-full transition-all duration-300">
-              Sign In
-            </button>
+            {user ? (
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setAccountOpen(!accountOpen)}
+                  className="flex items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500/40 group-hover:border-red-500 flex items-center justify-center transition-colors">
+                    <span className="text-red-500 text-xs font-bold">
+                      {(user.displayName?.[0] || user.email?.[0] || "U").toUpperCase()}
+                    </span>
+                  </div>
+                  <svg className={`w-3 h-3 text-zinc-500 group-hover:text-red-500 transition-all duration-200 ${accountOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {accountOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-[#111]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/60 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-white/5">
+                      {user.displayName && (
+                        <p className="text-white text-sm font-medium truncate">{user.displayName}</p>
+                      )}
+                      <p className="text-zinc-400 text-xs truncate mt-0.5">{user.email}</p>
+                    </div>
+                    <div className="py-1">
+                      <Link
+                        href="/account"
+                        onClick={() => setAccountOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-zinc-300 hover:text-white hover:bg-white/5 text-xs font-medium tracking-wider uppercase transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        My Account
+                      </Link>
+                      <Link
+                        href="/account#purchases"
+                        onClick={() => setAccountOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-zinc-300 hover:text-white hover:bg-white/5 text-xs font-medium tracking-wider uppercase transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        My Purchases
+                      </Link>
+                    </div>
+                    <div className="border-t border-white/5 pt-1">
+                      <button
+                        onClick={() => { signOut(); setAccountOpen(false); }}
+                        className="flex items-center gap-3 w-full px-4 py-2.5 text-zinc-400 hover:text-red-400 hover:bg-white/5 text-xs font-medium tracking-wider uppercase transition-colors cursor-pointer"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/auth"
+                className="hidden sm:flex items-center gap-2 border border-red-500/40 hover:border-red-500 hover:bg-red-500/8 text-red-500 hover:text-red-400 text-xs font-medium tracking-wider uppercase px-4 py-1.5 rounded-full transition-all duration-300"
+              >
+                Sign In
+              </Link>
+            )}
 
             <button
               className="md:hidden text-zinc-400 hover:text-white transition-colors"
@@ -111,7 +179,7 @@ export default function Navbar() {
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium tracking-widest uppercase transition-colors ${
-                  pathname === link.href ? "text-amber-400" : "text-zinc-400 hover:text-white"
+                  pathname === link.href ? "text-red-500" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 {"live" in link && link.live && (
@@ -120,10 +188,36 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <div className="px-4 pt-3">
-              <button className="w-full border border-amber-500/40 text-amber-400 text-xs font-medium tracking-wider uppercase py-2.5 rounded-full transition-all hover:bg-amber-500/10">
-                Sign In
-              </button>
+            <div className="px-4 pt-3 space-y-2">
+              {user ? (
+                <>
+                  <div className="text-center pb-2 border-b border-white/5 mb-2">
+                    {user.displayName && <p className="text-white text-sm font-medium">{user.displayName}</p>}
+                    <p className="text-zinc-400 text-xs truncate">{user.email}</p>
+                  </div>
+                  <Link
+                    href="/account"
+                    onClick={() => setMenuOpen(false)}
+                    className="block text-center w-full border border-red-500/40 text-red-500 text-xs font-medium tracking-wider uppercase py-2.5 rounded-full transition-all hover:bg-red-500/10"
+                  >
+                    My Account
+                  </Link>
+                  <button
+                    onClick={() => { signOut(); setMenuOpen(false); }}
+                    className="w-full border border-white/10 text-zinc-400 text-xs font-medium tracking-wider uppercase py-2.5 rounded-full transition-all hover:bg-white/5 hover:text-red-400 cursor-pointer"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/auth"
+                  onClick={() => setMenuOpen(false)}
+                  className="block text-center w-full border border-red-500/40 text-red-500 text-xs font-medium tracking-wider uppercase py-2.5 rounded-full transition-all hover:bg-red-500/10"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </div>
         )}
