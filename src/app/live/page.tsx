@@ -47,7 +47,7 @@ export default function LivePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent md:hidden" />
                       <div className="absolute top-4 left-4 flex items-center gap-2">
                         <div className="bg-red-500/90 text-black text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                          Premiere
+                          {stream.genre.includes("Concert") ? "Live Concert" : "Premiere"}
                         </div>
                         {(stream.price ?? 0) > 0 && (
                           <div className="bg-black/60 backdrop-blur-sm text-red-500 text-[10px] font-bold px-2 py-1 rounded-full border border-red-500/30">
@@ -81,17 +81,19 @@ export default function LivePage() {
                       </div>
                       <div className="flex flex-wrap gap-3">
                         <Link
-                          href="/watch/16"
-                          className="bg-red-500 hover:bg-red-500 text-black font-semibold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-red-900/20"
+                          href={`/live/${stream.id}`}
+                          className="bg-red-600 hover:bg-red-500 text-white font-semibold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-red-900/20"
                         >
-                          {(stream.price ?? 0) > 0 ? `Pay Now — $${stream.price}` : "Set Reminder"}
+                          {(stream.price ?? 0) > 0 ? `Pre-Order — $${stream.price}` : "Set Reminder"}
                         </Link>
-                        <Link
-                          href="/watch/16"
-                          className="border border-white/15 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm font-medium px-7 py-3 rounded-full transition-all"
-                        >
-                          Watch Trailer
-                        </Link>
+                        {stream.genre.includes("Concert") ? null : (
+                          <Link
+                            href="/watch/16"
+                            className="border border-white/15 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm font-medium px-7 py-3 rounded-full transition-all"
+                          >
+                            Watch Trailer
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>

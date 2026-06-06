@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
+import { CONTENT, LIVE_STREAMS } from "@/lib/data";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Paynow } = require("paynow");
 
@@ -51,17 +52,23 @@ export async function POST(req: NextRequest) {
     paynow.resultUrl = `${BASE_URL}/api/payments/result`;
     paynow.returnUrl = `${BASE_URL}/watch/${contentId}?payment=success`;
 
+    // Look up content title and price from data
+    const contentItem = CONTENT.find((c) => c.id === contentId)
+      ?? LIVE_STREAMS.find((s) => s.id === contentId);
+    const itemTitle = contentItem?.title ?? "Africin Content";
+    const itemPrice = contentItem?.price ?? 4.99;
+
     // Create payment reference
     const ref = `AFRICIN-${contentId}-${userId.slice(0, 8)}-${Date.now()}`;
     const payment = paynow.createPayment(ref, userEmail);
-    payment.add("Sizolobola: The Solemnity", 6.99);
+    payment.add(itemTitle, itemPrice);
 
     // Create Firestore purchase record
     const purchaseRef = adminDb.collection("purchases").doc();
     const purchaseData = {
       userId,
       contentId,
-      amount: 6.99,
+      amount: itemPrice,
       currency: "USD",
       method,
       reference: ref,
