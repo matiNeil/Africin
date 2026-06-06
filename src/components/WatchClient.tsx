@@ -222,7 +222,7 @@ export default function WatchClient({ content, related }: WatchClientProps) {
               {requiresPayment && !isPaid && (
                 <button onClick={() => setShowPaywall(true)}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-emerald-900/20">
-                  Pay Now — ${content.price}
+                  Pre-Order ${content.price}
                 </button>
               )}
               {isPaid && (

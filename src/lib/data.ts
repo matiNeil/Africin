@@ -72,7 +72,7 @@ export const LIVE_STREAMS: LiveStream[] = [
     isLive: false,
     startTime: "2026-07-10T17:00:00Z",
     endTime: "2026-07-10T22:00:00Z",
-    price: 4.99,
+    price: 6.99,
     currency: "USD",
     host: "Africin Originals",
     country: "Zimbabwe",

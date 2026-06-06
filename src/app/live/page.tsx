@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { LIVE_STREAMS } from "@/lib/data";
 import CountdownTimer from "@/components/CountdownTimer";
+import ExpandableDescription from "@/components/ExpandableDescription";
 
 export default function LivePage() {
   const upcoming = LIVE_STREAMS.filter((s) => !s.isLive);
@@ -65,9 +66,7 @@ export default function LivePage() {
                       <h3 className="font-display text-white font-bold text-2xl sm:text-3xl mb-2">
                         {stream.title}
                       </h3>
-                      <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                        {stream.description}
-                      </p>
+                      <ExpandableDescription text={stream.description} />
                       <div className="mb-6">
                         <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Starts in</p>
                         <CountdownTimer targetDate={stream.startTime} className="text-lg" />
@@ -84,7 +83,7 @@ export default function LivePage() {
                           href={`/live/${stream.id}`}
                           className="bg-red-600 hover:bg-red-500 text-white font-semibold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-red-900/20"
                         >
-                          {(stream.price ?? 0) > 0 ? `Pre-Order — $${stream.price}` : "Set Reminder"}
+                          {(stream.price ?? 0) > 0 ? `Pre-Order $${stream.price}` : "Set Reminder"}
                         </Link>
                         {stream.genre.includes("Concert") ? null : (
                           <Link

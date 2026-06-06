@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FEATURED, LIVE_STREAMS } from "@/lib/data";
 import CountdownTimer from "@/components/CountdownTimer";
+import HomePreOrder from "@/components/HomePreOrder";
 
 export default function Home() {
   return (
@@ -114,23 +115,10 @@ export default function Home() {
             <p className="text-zinc-500 text-sm mb-8 max-w-xl mx-auto">
               Be the first to watch Sizolobola: The Solemnity — a story of love, identity, and unity from Zimbabwe.
             </p>
-            <div className="mb-8">
+            <div className="mb-8 flex justify-center">
               <CountdownTimer targetDate={FEATURED.premiereDate} className="text-xl" />
             </div>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Link
-                href={`/watch/${FEATURED.id}`}
-                className="bg-red-500 hover:bg-red-500 text-black font-semibold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-red-900/20"
-              >
-                Pre-Order — $6.99
-              </Link>
-              <Link
-                href="/live"
-                className="border border-white/15 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm font-medium px-7 py-3 rounded-full transition-all"
-              >
-                View Premiere Event
-              </Link>
-            </div>
+            <HomePreOrder content={FEATURED} />
           </div>
         </section>
       )}
