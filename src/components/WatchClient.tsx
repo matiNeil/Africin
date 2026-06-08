@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Content } from "@/lib/data";
 import PaywallModal from "./PaywallModal";
 import CountdownTimer from "./CountdownTimer";
-import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { usePurchaseStatus } from "@/hooks/usePurchaseStatus";
 
 interface WatchClientProps {
   content: Content;
@@ -16,53 +14,19 @@ interface WatchClientProps {
 }
 
 export default function WatchClient({ content, related }: WatchClientProps) {
-  const { user } = useAuth();
-  const [isPaid, setIsPaid] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const { isPaid, markPaid } = usePurchaseStatus(content.id);
 
   const requiresPayment = !!(content.price && content.price > 0);
   const isUpcoming = content.premiereDate
     ? new Date(content.premiereDate).getTime() > Date.now()
     : false;
 
-  // Check Firestore for existing purchase
-  useEffect(() => {
-    async function checkPurchase() {
-      if (!user) {
-        setIsPaid(false);
-        setHydrated(true);
-        return;
-      }
-      try {
-        const q = query(
-          collection(db, "purchases"),
-          where("userId", "==", user.uid),
-          where("contentId", "==", content.id),
-          where("status", "==", "paid")
-        );
-        const snapshot = await getDocs(q);
-        setIsPaid(!snapshot.empty);
-      } catch {
-        setIsPaid(false);
-      }
-      setHydrated(true);
-    }
-    checkPurchase();
-  }, [user, content.id]);
-
-  // Trailer is free — paywall only shows when user clicks "Pay Now"
-
-  const handlePaySuccess = () => {
-    setIsPaid(true);
-    setShowPaywall(false);
-  };
-
   return (
     <>
       {showPaywall && (
-        <PaywallModal content={content} onSuccess={handlePaySuccess}
+        <PaywallModal content={content} onSuccess={() => { markPaid(); setShowPaywall(false); }}
           onClose={() => setShowPaywall(false)}
         />
       )}
