@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CONTENT, GENRES, COUNTRIES } from "@/lib/data";
 import ContentCard from "@/components/ContentCard";
 
-export default function BrowsePage() {
+function BrowseContent() {
   const searchParams = useSearchParams();
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [selectedCountry, setSelectedCountry] = useState("All");
@@ -134,5 +134,17 @@ export default function BrowsePage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-black pt-16 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+      </main>
+    }>
+      <BrowseContent />
+    </Suspense>
   );
 }
