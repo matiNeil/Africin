@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Content } from "@/lib/data";
@@ -124,7 +124,9 @@ export default function WatchClient({ content, related }: WatchClientProps) {
 
   return (
     <>
-      <PaymentSuccessBanner isPaid={isPaid} />
+      <Suspense fallback={null}>
+        <PaymentSuccessBanner isPaid={isPaid} />
+      </Suspense>
       {showPaywall && (
         <PaywallModal content={content} onSuccess={() => { markPaid(); setShowPaywall(false); }}
           onClose={() => setShowPaywall(false)}
