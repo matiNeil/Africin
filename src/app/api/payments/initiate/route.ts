@@ -50,7 +50,10 @@ export async function POST(req: NextRequest) {
     );
 
     paynow.resultUrl = `${BASE_URL}/api/payments/result`;
-    paynow.returnUrl = `${BASE_URL}/watch/${contentId}?payment=success`;
+    const isLiveContent = LIVE_STREAMS.some((s) => s.id === contentId);
+    paynow.returnUrl = isLiveContent
+      ? `${BASE_URL}/live/${contentId}?payment=success`
+      : `${BASE_URL}/watch/${contentId}?payment=success`;
 
     // Look up content title and price from data
     const contentItem = CONTENT.find((c) => c.id === contentId)
@@ -67,7 +70,9 @@ export async function POST(req: NextRequest) {
     const purchaseRef = adminDb.collection("purchases").doc();
     const purchaseData = {
       userId,
+      userEmail,
       contentId,
+      contentTitle: itemTitle,
       amount: itemPrice,
       currency: "USD",
       method,

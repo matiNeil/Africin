@@ -2,16 +2,34 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { user, signOut } = useAuth();
+
+  // Focus input when overlay opens
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+    else setSearchQuery("");
+  }, [searchOpen]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/browse?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchOpen(false);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -75,15 +93,21 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-4">
-            <Link
-              href="/browse"
+            <button
+              onClick={() => setSearchOpen(!searchOpen)}
               className="text-zinc-400 hover:text-red-500 transition-colors duration-300"
               aria-label="Search"
             >
-              <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </Link>
+              {searchOpen ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              )}
+            </button>
 
             {user ? (
               <div className="relative hidden sm:block">
@@ -169,6 +193,31 @@ export default function Navbar() {
             </button>
           </div>
         </div>
+
+        {/* Search overlay */}
+        {searchOpen && (
+          <div className="border-t border-white/5">
+            <form onSubmit={handleSearch} className="flex items-center gap-3 px-4 py-3">
+              <svg className="w-4 h-4 text-zinc-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search films, events…"
+                className="flex-1 bg-transparent text-white placeholder-zinc-600 text-sm focus:outline-none"
+                onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
+              />
+              {searchQuery && (
+                <button type="submit" className="text-red-500 text-xs font-medium uppercase tracking-wider hover:text-red-400 transition-colors">
+                  Go
+                </button>
+              )}
+            </form>
+          </div>
+        )}
 
         {/* Mobile menu */}
         {menuOpen && (

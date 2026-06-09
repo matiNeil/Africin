@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -23,10 +23,13 @@ export function usePurchaseStatus(contentId: string) {
       where("contentId", "==", contentId),
       where("status", "==", "paid")
     );
-    getDocs(q)
-      .then((snap) => setIsPaid(!snap.empty))
-      .catch(() => setIsPaid(false))
-      .finally(() => setChecking(false));
+    // Real-time listener — auto-updates when webhook confirms payment
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => { setIsPaid(!snap.empty); setChecking(false); },
+      () => { setIsPaid(false); setChecking(false); }
+    );
+    return unsubscribe;
   }, [user, contentId]);
 
   return { isPaid, checking, markPaid: () => setIsPaid(true) };

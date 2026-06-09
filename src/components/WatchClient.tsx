@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Content } from "@/lib/data";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import PaywallModal from "./PaywallModal";
 import CountdownTimer from "./CountdownTimer";
+import PaymentSuccessBanner from "./PaymentSuccessBanner";
 import { usePurchaseStatus } from "@/hooks/usePurchaseStatus";
+import { useWatchlist } from "@/hooks/useWatchlist";
+import { useAuth } from "@/context/AuthContext";
 
 interface WatchClientProps {
   content: Content;
@@ -16,7 +21,101 @@ interface WatchClientProps {
 export default function WatchClient({ content, related }: WatchClientProps) {
   const [showPaywall, setShowPaywall] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [resumeSeconds, setResumeSeconds] = useState<number | null>(null);
   const { isPaid, markPaid } = usePurchaseStatus(content.id);
+  const { isInList, toggle: toggleWatchlist } = useWatchlist(content.id);
+  const { user } = useAuth();
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const playerRef = useRef<any>(null);
+  const saveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const progressKey = user ? `${user.uid}_${content.id}` : null;
+
+  // Load saved progress on mount
+  useEffect(() => {
+    if (!progressKey || !content.videoUrl) return;
+    const ref = doc(db, `watchProgress/${progressKey}`);
+    getDoc(ref).then((snap) => {
+      if (snap.exists()) {
+        const { seconds, percent } = snap.data();
+        if (percent > 5) setResumeSeconds(seconds);
+      }
+    }).catch(() => {});
+  }, [progressKey, content.videoUrl]);
+
+  // Save progress to Firestore (throttled — called every 30s by interval)
+  const saveProgress = useCallback(async (seconds: number, duration: number) => {
+    if (!progressKey || !user) return;
+    const percent = duration > 0 ? (seconds / duration) * 100 : 0;
+    const ref = doc(db, `watchProgress/${progressKey}`);
+    await setDoc(ref, {
+      userId: user.uid,
+      contentId: content.id,
+      seconds: Math.floor(seconds),
+      percent: Math.round(percent),
+      updatedAt: new Date().toISOString(),
+    }).catch(() => {});
+  }, [progressKey, user, content.id]);
+
+  // Initialise Vimeo Player SDK when user clicks play
+  useEffect(() => {
+    if (!playing || !content.videoUrl || !playerContainerRef.current) return;
+
+    const vimeoMatch = content.videoUrl.match(/vimeo\.com\/(\d+)(?:\/(\w+))?/);
+    if (!vimeoMatch) return;
+    const videoId = parseInt(vimeoMatch[1], 10);
+    const hash = vimeoMatch[2] ?? "";
+
+    let destroyed = false;
+
+    import("@vimeo/player").then(({ default: Player }) => {
+      if (destroyed || !playerContainerRef.current) return;
+
+      // Use full URL so the private hash is preserved
+      const vimeoUrl = hash
+        ? `https://vimeo.com/${videoId}/${hash}`
+        : `https://vimeo.com/${videoId}`;
+
+      const player = new Player(playerContainerRef.current, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        url: vimeoUrl as any,
+        autoplay: true,
+        responsive: true,
+        title: false,
+        byline: false,
+        portrait: false,
+      });
+
+      playerRef.current = player;
+
+      // Seek to saved position once ready
+      player.ready().then(async () => {
+        if (resumeSeconds && resumeSeconds > 10) {
+          await player.setCurrentTime(resumeSeconds).catch(() => {});
+        }
+      });
+
+      // Periodic progress save every 30s
+      saveIntervalRef.current = setInterval(async () => {
+        try {
+          const [seconds, duration] = await Promise.all([
+            player.getCurrentTime(),
+            player.getDuration(),
+          ]);
+          await saveProgress(seconds, duration);
+        } catch {}
+      }, 30_000);
+    });
+
+    return () => {
+      destroyed = true;
+      if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
+      playerRef.current?.destroy().catch(() => {});
+      playerRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing]);
 
   const requiresPayment = !!(content.price && content.price > 0);
   const isUpcoming = content.premiereDate
@@ -25,6 +124,7 @@ export default function WatchClient({ content, related }: WatchClientProps) {
 
   return (
     <>
+      <PaymentSuccessBanner isPaid={isPaid} />
       {showPaywall && (
         <PaywallModal content={content} onSuccess={() => { markPaid(); setShowPaywall(false); }}
           onClose={() => setShowPaywall(false)}
@@ -35,21 +135,12 @@ export default function WatchClient({ content, related }: WatchClientProps) {
       <div className="w-full bg-black">
         <div className="max-w-6xl mx-auto">
           <div className="relative aspect-video bg-zinc-950 group">
-            {/* Vimeo embed when playing */}
+          {/* Vimeo Player SDK container */}
             {playing && content.videoUrl ? (
-              (() => {
-                const vimeoMatch = content.videoUrl!.match(/vimeo\.com\/(\d+)\/(\w+)/);
-                const videoId = vimeoMatch?.[1] ?? "";
-                const hash = vimeoMatch?.[2] ?? "";
-                return (
-                  <iframe
-                    src={`https://player.vimeo.com/video/${videoId}?h=${hash}&autoplay=1&title=0&byline=0&portrait=0`}
-                    className="absolute inset-0 w-full h-full"
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    allowFullScreen
-                  />
-                );
-              })()
+              <div
+                ref={playerContainerRef}
+                className="absolute inset-0 w-full h-full"
+              />
             ) : (
               <>
                 <Image src={content.backdrop} alt={content.title} fill priority
@@ -176,11 +267,18 @@ export default function WatchClient({ content, related }: WatchClientProps) {
             <div className="flex flex-wrap gap-3 mb-8">
               {/* Trailer is always free */}
               {content.videoUrl && (
-                <button onClick={() => setPlaying(true)}
-                  className="flex items-center gap-2.5 bg-red-500 hover:bg-red-500 text-black font-semibold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-red-900/20">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                  Watch Trailer
-                </button>
+                <div className="flex flex-col items-start gap-1">
+                  <button onClick={() => setPlaying(true)}
+                    className="flex items-center gap-2.5 bg-red-500 hover:bg-red-600 text-black font-semibold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-red-900/20">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                    {resumeSeconds && resumeSeconds > 10 ? "Resume" : "Watch Trailer"}
+                  </button>
+                  {resumeSeconds && resumeSeconds > 10 && (
+                    <span className="text-zinc-500 text-[10px] pl-1">
+                      From {Math.floor(resumeSeconds / 60)}:{String(Math.floor(resumeSeconds % 60)).padStart(2, "0")}
+                    </span>
+                  )}
+                </div>
               )}
               {/* Pay Now button for full film access */}
               {requiresPayment && !isPaid && (
@@ -194,11 +292,18 @@ export default function WatchClient({ content, related }: WatchClientProps) {
                   ✓ Paid — Access on July 10
                 </span>
               )}
-              <button className="flex items-center gap-2 border border-white/10 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm px-5 py-3 rounded-full transition-all">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+              <button
+                onClick={toggleWatchlist}
+                className={`flex items-center gap-2 border text-sm px-5 py-3 rounded-full transition-all ${
+                  isInList
+                    ? "border-red-500/40 bg-red-500/10 text-red-400"
+                    : "border-white/10 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500"
+                }`}
+              >
+                <svg className="w-4 h-4" fill={isInList ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
-                My List
+                {isInList ? "In My List" : "My List"}
               </button>
             </div>
 

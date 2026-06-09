@@ -1,16 +1,24 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { CONTENT, GENRES, COUNTRIES } from "@/lib/data";
 import ContentCard from "@/components/ContentCard";
 
 export default function BrowsePage() {
+  const searchParams = useSearchParams();
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [selectedCountry, setSelectedCountry] = useState("All");
   const [selectedType, setSelectedType] = useState<"all" | "movie" | "series">("all");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+
+  // Sync search input when URL ?q param changes (e.g. from navbar search)
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    setSearch(q);
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     return CONTENT.filter((item) => {
