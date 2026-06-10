@@ -41,7 +41,12 @@ export default function PaywallModal({ content, onSuccess, onClose }: PaywallMod
         if (data.alreadyPaid) { setSuccess(true); onSuccess(); return; }
         throw new Error(data.error || "Payment failed");
       }
-      if (data.redirectUrl) window.location.href = data.redirectUrl;
+      if (data.redirectUrl) {
+        if (data.purchaseId) {
+          sessionStorage.setItem("pendingPurchaseId", data.purchaseId);
+        }
+        window.location.href = data.redirectUrl;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed. Please try again.");
     } finally {

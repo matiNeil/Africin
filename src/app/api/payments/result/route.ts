@@ -27,7 +27,15 @@ export async function POST(req: NextRequest) {
 
     // Reject tampered callbacks
     if (!verifyPaynowHash(params)) {
-      console.warn("Paynow result: hash verification failed");
+      // Log the full incoming body so we can diagnose in Vercel logs
+      console.error("Paynow result: hash verification FAILED", {
+        reference: params.get("reference"),
+        status: params.get("status"),
+        hasHash: !!params.get("hash"),
+        hasIntegrationKey: !!process.env.PAYNOW_INTEGRATION_KEY,
+        // Log all keys present (not values, to avoid leaking sensitive data)
+        keys: Array.from(params.keys()),
+      });
       return NextResponse.json({ error: "Invalid hash" }, { status: 400 });
     }
 
