@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LIVE_STREAMS } from "@/lib/data";
 import CountdownTimer from "@/components/CountdownTimer";
 import ExpandableDescription from "@/components/ExpandableDescription";
+import AppDownload from "@/components/AppDownload";
 
 export default function LivePage() {
   const upcoming = LIVE_STREAMS.filter((s) => !s.isLive);
@@ -78,21 +79,17 @@ export default function LivePage() {
                           </span>
                         ))}
                       </div>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-col gap-4">
                         <Link
                           href={`/live/${stream.id}`}
-                          className="bg-red-600 hover:bg-red-500 text-white font-semibold text-sm px-7 py-3 rounded-full transition-all shadow-lg shadow-red-900/20"
+                          className="self-start border border-white/15 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm font-medium px-7 py-3 rounded-full transition-all"
                         >
-                          {(stream.price ?? 0) > 0 ? `Pre-Order $${stream.price}` : "Set Reminder"}
+                          View Event
                         </Link>
-                        {stream.genre.includes("Concert") ? null : (
-                          <Link
-                            href="/watch/16"
-                            className="border border-white/15 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm font-medium px-7 py-3 rounded-full transition-all"
-                          >
-                            Watch Trailer
-                          </Link>
-                        )}
+                        <div>
+                          <p className="text-zinc-600 text-[10px] uppercase tracking-[0.2em] mb-2">Watch live on the app</p>
+                          <AppDownload />
+                        </div>
                       </div>
                     </div>
                   </div>

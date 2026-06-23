@@ -1,19 +1,16 @@
 "use client";
 
-import { use, useState } from "react";
+import { use } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { LIVE_STREAMS } from "@/lib/data";
 import CountdownTimer from "@/components/CountdownTimer";
-import LivePaywallModal from "@/components/LivePaywallModal";
+import AppDownload from "@/components/AppDownload";
 import { notFound } from "next/navigation";
 
 export default function LiveEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const stream = LIVE_STREAMS.find((s) => s.id === id);
-
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [purchased, setPurchased] = useState(false);
 
   if (!stream) return notFound();
 
@@ -112,19 +109,13 @@ export default function LiveEventPage({ params }: { params: Promise<{ id: string
               </span>
             </div>
 
-            {purchased ? (
-              <div className="text-center py-3">
-                <p className="text-green-400 font-semibold mb-1">✓ You&apos;re in!</p>
-                <p className="text-zinc-500 text-xs">Access unlocks when the event goes live.</p>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowPaywall(true)}
-                className="w-full bg-red-600 hover:bg-red-500 text-white font-semibold py-3 rounded-xl transition-colors mb-3"
-              >
-                {(stream.price ?? 0) > 0 ? `Pre-Order — $${stream.price?.toFixed(2)}` : "Get Free Access"}
-              </button>
-            )}
+            <p className="text-zinc-400 text-xs leading-relaxed mb-4">
+              Get the Africin app to {(stream.price ?? 0) > 0 ? "pre-order and watch this live event" : "set a reminder and watch this live event"}. Streaming happens in the app.
+            </p>
+
+            <div className="mb-4">
+              <AppDownload />
+            </div>
 
             <Link
               href="/live"
@@ -136,14 +127,6 @@ export default function LiveEventPage({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      {/* Paywall modal */}
-      {showPaywall && (
-        <LivePaywallModal
-          stream={stream}
-          onSuccess={() => { setShowPaywall(false); setPurchased(true); }}
-          onClose={() => setShowPaywall(false)}
-        />
-      )}
     </main>
   );
 }

@@ -4,18 +4,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/context/AuthContext";
+import AppDownload from "@/components/AppDownload";
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { user, signOut } = useAuth();
 
   // Focus input when overlay opens
   useEffect(() => {
@@ -43,6 +41,7 @@ export default function Navbar() {
     { href: "/browse?type=movie", label: "Movies" },
     { href: "/browse?type=series", label: "Series" },
     { href: "/live", label: "Live", live: true },
+    { href: "/support", label: "Support" },
   ];
 
   return (
@@ -109,74 +108,10 @@ export default function Navbar() {
               )}
             </button>
 
-            {user ? (
-              <div className="relative hidden sm:block">
-                <button
-                  onClick={() => setAccountOpen(!accountOpen)}
-                  className="flex items-center gap-2 group cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500/40 group-hover:border-red-500 flex items-center justify-center transition-colors">
-                    <span className="text-red-500 text-xs font-bold">
-                      {(user.displayName?.[0] || user.email?.[0] || "U").toUpperCase()}
-                    </span>
-                  </div>
-                  <svg className={`w-3 h-3 text-zinc-500 group-hover:text-red-500 transition-all duration-200 ${accountOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {accountOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-[#111]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/60 py-2 z-50">
-                    <div className="px-4 py-3 border-b border-white/5">
-                      {user.displayName && (
-                        <p className="text-white text-sm font-medium truncate">{user.displayName}</p>
-                      )}
-                      <p className="text-zinc-400 text-xs truncate mt-0.5">{user.email}</p>
-                    </div>
-                    <div className="py-1">
-                      <Link
-                        href="/account"
-                        onClick={() => setAccountOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-zinc-300 hover:text-white hover:bg-white/5 text-xs font-medium tracking-wider uppercase transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        My Account
-                      </Link>
-                      <Link
-                        href="/account#purchases"
-                        onClick={() => setAccountOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-zinc-300 hover:text-white hover:bg-white/5 text-xs font-medium tracking-wider uppercase transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        My Purchases
-                      </Link>
-                    </div>
-                    <div className="border-t border-white/5 pt-1">
-                      <button
-                        onClick={() => { signOut(); setAccountOpen(false); }}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 text-zinc-400 hover:text-red-400 hover:bg-white/5 text-xs font-medium tracking-wider uppercase transition-colors cursor-pointer"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        Sign Out
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                href="/auth"
-                className="hidden sm:flex items-center gap-2 border border-red-500/40 hover:border-red-500 hover:bg-red-500/8 text-red-500 hover:text-red-400 text-xs font-medium tracking-wider uppercase px-4 py-1.5 rounded-full transition-all duration-300"
-              >
-                Sign In
-              </Link>
-            )}
+            {/* Get the app — apps are the only way to watch */}
+            <div className="hidden sm:block">
+              <AppDownload variant="compact" />
+            </div>
 
             <button
               className="md:hidden text-zinc-400 hover:text-white transition-colors"
@@ -237,36 +172,8 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <div className="px-4 pt-3 space-y-2">
-              {user ? (
-                <>
-                  <div className="text-center pb-2 border-b border-white/5 mb-2">
-                    {user.displayName && <p className="text-white text-sm font-medium">{user.displayName}</p>}
-                    <p className="text-zinc-400 text-xs truncate">{user.email}</p>
-                  </div>
-                  <Link
-                    href="/account"
-                    onClick={() => setMenuOpen(false)}
-                    className="block text-center w-full border border-red-500/40 text-red-500 text-xs font-medium tracking-wider uppercase py-2.5 rounded-full transition-all hover:bg-red-500/10"
-                  >
-                    My Account
-                  </Link>
-                  <button
-                    onClick={() => { signOut(); setMenuOpen(false); }}
-                    className="w-full border border-white/10 text-zinc-400 text-xs font-medium tracking-wider uppercase py-2.5 rounded-full transition-all hover:bg-white/5 hover:text-red-400 cursor-pointer"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <Link
-                  href="/auth"
-                  onClick={() => setMenuOpen(false)}
-                  className="block text-center w-full border border-red-500/40 text-red-500 text-xs font-medium tracking-wider uppercase py-2.5 rounded-full transition-all hover:bg-red-500/10"
-                >
-                  Sign In
-                </Link>
-              )}
+            <div className="px-4 pt-3">
+              <AppDownload variant="compact" className="w-full justify-center !py-2.5" />
             </div>
           </div>
         )}

@@ -3,7 +3,6 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import SplashScreen from "@/components/SplashScreen";
-import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({
@@ -14,8 +13,9 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Africin — Stream · Watch · Africa",
-  description: "Your home for African stories. Watch movies, series, and documentaries from across the continent.",
+  title: "Africin — Stream African Cinema on the App",
+  description:
+    "Africin is your home for African cinema. Download the app to watch movies, series, documentaries, and live events from across the continent.",
 };
 
 export default function RootLayout({
@@ -26,7 +26,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${playfair.variable} font-sans bg-black text-white antialiased min-h-screen`}>
-        <AuthProvider>
         <SplashScreen />
         <Navbar />
         {children}
@@ -36,7 +35,6 @@ export default function RootLayout({
             <span className="text-red-500 font-semibold">ForgeStackX</span>
           </p>
         </footer>
-        </AuthProvider>
       </body>
     </html>
   );
