@@ -45,20 +45,20 @@ export async function POST(req: NextRequest) {
       process.env.PAYNOW_INTEGRATION_KEY
     );
 
-    const status = await paynow.pollTransaction(purchase.pollUrl);
+    const polled = await paynow.pollTransaction(purchase.pollUrl);
+    // pollTransaction returns an InitResponse whose `status` is the
+    // authoritative, lowercased Paynow status. This SDK has no `.paid()` method.
+    const paynowStatus =
+      polled && polled.status != null ? String(polled.status).toLowerCase() : "pending";
 
-    if (status.paid()) {
-      // Update Firestore
+    if (paynowStatus === "paid") {
       await adminDb.collection("purchases").doc(purchaseId).update({
         status: "paid",
         paidAt: new Date().toISOString(),
-        paynowReference: status.paynowreference || "",
       });
       return NextResponse.json({ status: "paid" });
     }
 
-    // Map Paynow status
-    const paynowStatus = (status.status || "pending").toLowerCase();
     if (paynowStatus === "cancelled" || paynowStatus === "failed") {
       await adminDb.collection("purchases").doc(purchaseId).update({
         status: "failed",
