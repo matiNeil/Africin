@@ -29,7 +29,7 @@ export async function sendPurchaseConfirmation({
   // collection.
   const resend = new Resend(process.env.RESEND_API_KEY);
 
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://africin.vercel.app";
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL?.trim() || "https://www.africin.tv";
   const accessUrl = isLive ? `${BASE_URL}/live/${contentId}` : `${BASE_URL}/watch/${contentId}`;
   const dateStr = paidAt
     ? new Date(paidAt).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })

@@ -4,7 +4,11 @@ import { CONTENT, LIVE_STREAMS } from "@/lib/data";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Paynow } = require("paynow");
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+// Canonical public origin. Must be the `www` host: the apex africin.tv
+// 307-redirects to www and can drop the POST body on Paynow's result callback.
+// Treat an empty/whitespace env value as unset so we never fall back to
+// localhost in production (which silently breaks payment confirmation).
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL?.trim() || "https://www.africin.tv";
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,6 +59,55 @@ export async function POST(req: NextRequest) {
       ? `${BASE_URL}/live/${contentId}?payment=success`
       : `${BASE_URL}/watch/${contentId}?payment=success`;
 
+    // Idempotency guard: reuse a recent pending purchase instead of creating a
+    // second Paynow transaction (which double-charges the customer). Always
+    // re-poll Paynow first so a just-completed payment unlocks here too.
+    const REUSE_WINDOW_MS = 20 * 60 * 1000;
+    const pendingSnap = await adminDb
+      .collection("purchases")
+      .where("userId", "==", userId)
+      .where("contentId", "==", contentId)
+      .where("status", "==", "pending")
+      .get();
+    if (!pendingSnap.empty) {
+      const recent = pendingSnap.docs.sort((a, b) => {
+        const ta = Date.parse(a.data().createdAt ?? "") || 0;
+        const tb = Date.parse(b.data().createdAt ?? "") || 0;
+        return tb - ta;
+      })[0];
+      const data = recent.data();
+      const ageMs = Date.now() - (Date.parse(data.createdAt ?? "") || 0);
+
+      if (data.pollUrl) {
+        try {
+          const polled = await paynow.pollTransaction(data.pollUrl);
+          const polledStatus =
+            polled && polled.status != null ? String(polled.status).toLowerCase() : "";
+          if (polledStatus === "paid") {
+            await recent.ref.update({ status: "paid", paidAt: new Date().toISOString() });
+            return NextResponse.json({ error: "Already purchased", alreadyPaid: true }, { status: 400 });
+          }
+        } catch (pollErr) {
+          console.error("Payment initiate: pending re-poll failed:", pollErr);
+        }
+      }
+
+      if (ageMs < REUSE_WINDOW_MS && typeof data.redirectUrl === "string" && data.redirectUrl) {
+        // Within the window and we still have the original checkout link: return
+        // it so the user completes the SAME transaction (no new charge).
+        return NextResponse.json({
+          success: true,
+          purchaseId: recent.id,
+          redirectUrl: data.redirectUrl,
+          pollUrl: data.pollUrl,
+          reused: true,
+        });
+      }
+
+      // Stale/unusable pending record: retire it, then create a fresh payment.
+      await recent.ref.update({ status: "failed" });
+    }
+
     // Look up content title and price from data
     const contentItem = CONTENT.find((c) => c.id === contentId)
       ?? LIVE_STREAMS.find((s) => s.id === contentId);
@@ -78,6 +131,7 @@ export async function POST(req: NextRequest) {
       method,
       reference: ref,
       pollUrl: "",
+      redirectUrl: "",
       status: "pending",
       createdAt: new Date().toISOString(),
       paidAt: null,
@@ -124,6 +178,7 @@ export async function POST(req: NextRequest) {
 
       if (response.success) {
         purchaseData.pollUrl = response.pollUrl;
+        purchaseData.redirectUrl = response.redirectUrl;
         await purchaseRef.set(purchaseData);
 
         return NextResponse.json({
