@@ -36,6 +36,7 @@ export interface LiveStream {
   country: string;
   genre: string[];
   chatEnabled: boolean;
+  embedUrl?: string;        // web player embed (e.g. Cloudflare Stream iframe src)
 }
 
 export const CONTENT: Content[] = [
@@ -95,6 +96,7 @@ export const LIVE_STREAMS: LiveStream[] = [
     country: "Zimbabwe",
     genre: ["Music", "Concert", "Live"],
     chatEnabled: true,
+    embedUrl: "https://customer-fiuwdxvaro0msdf8.cloudflarestream.com/b24fe1d0abb6587e399b2dd21646bf1a/iframe",
   },
 ];
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { LIVE_STREAMS } from "@/lib/data";
 import CountdownTimer from "@/components/CountdownTimer";
 import AppDownload from "@/components/AppDownload";
+import LiveStreamPlayer from "@/components/LiveStreamPlayer";
 import { notFound } from "next/navigation";
 
 export default function LiveEventPage({ params }: { params: Promise<{ id: string }> }) {
@@ -98,24 +99,44 @@ export default function LiveEventPage({ params }: { params: Promise<{ id: string
 
           {/* Right — action card */}
           <div className="bg-zinc-950 border border-white/10 rounded-2xl p-6 sticky top-24">
-            <div className="relative aspect-video rounded-xl overflow-hidden mb-5">
-              <Image src={stream.thumbnail} alt={stream.title} fill className="object-cover" sizes="320px" />
-            </div>
+            {stream.embedUrl ? (
+              <>
+                <div className="mb-5">
+                  <LiveStreamPlayer
+                    streamId={stream.id}
+                    embedUrl={stream.embedUrl}
+                    price={stream.price ?? 0}
+                    currency={stream.currency}
+                    startTime={stream.startTime}
+                  />
+                </div>
+                <p className="text-zinc-600 text-[10px] uppercase tracking-widest mb-2">Also available in the app</p>
+                <div className="mb-4">
+                  <AppDownload variant="compact" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="relative aspect-video rounded-xl overflow-hidden mb-5">
+                  <Image src={stream.thumbnail} alt={stream.title} fill className="object-cover" sizes="320px" />
+                </div>
 
-            <div className="flex items-center justify-between mb-5">
-              <span className="text-zinc-400 text-sm">Access price</span>
-              <span className="text-white font-bold text-2xl">
-                {(stream.price ?? 0) > 0 ? `$${stream.price?.toFixed(2)}` : "Free"}
-              </span>
-            </div>
+                <div className="flex items-center justify-between mb-5">
+                  <span className="text-zinc-400 text-sm">Access price</span>
+                  <span className="text-white font-bold text-2xl">
+                    {(stream.price ?? 0) > 0 ? `$${stream.price?.toFixed(2)}` : "Free"}
+                  </span>
+                </div>
 
-            <p className="text-zinc-400 text-xs leading-relaxed mb-4">
-              Get the Africin app to {(stream.price ?? 0) > 0 ? "pre-order and watch this live event" : "set a reminder and watch this live event"}. Streaming happens in the app.
-            </p>
+                <p className="text-zinc-400 text-xs leading-relaxed mb-4">
+                  Get the Africin app to {(stream.price ?? 0) > 0 ? "pre-order and watch this live event" : "set a reminder and watch this live event"}. Streaming happens in the app.
+                </p>
 
-            <div className="mb-4">
-              <AppDownload />
-            </div>
+                <div className="mb-4">
+                  <AppDownload />
+                </div>
+              </>
+            )}
 
             <Link
               href="/live"

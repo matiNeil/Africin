@@ -1,14 +1,29 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { LIVE_STREAMS } from "@/lib/data";
+import { LIVE_STREAMS, type LiveStream } from "@/lib/data";
 import CountdownTimer from "@/components/CountdownTimer";
 import ExpandableDescription from "@/components/ExpandableDescription";
 import AppDownload from "@/components/AppDownload";
+import LiveStreamPlayer from "@/components/LiveStreamPlayer";
+
+function isCurrentlyLive(s: LiveStream, now: number) {
+  const started = now >= new Date(s.startTime).getTime();
+  const ended = s.endTime ? now >= new Date(s.endTime).getTime() : false;
+  return started && !ended;
+}
 
 export default function LivePage() {
-  const upcoming = LIVE_STREAMS.filter((s) => !s.isLive);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const liveNow = LIVE_STREAMS.filter((s) => isCurrentlyLive(s, now));
+  const upcoming = LIVE_STREAMS.filter((s) => !isCurrentlyLive(s, now) && new Date(s.startTime).getTime() > now);
 
   return (
     <main className="min-h-screen bg-black pt-16 pb-12">
@@ -24,6 +39,52 @@ export default function LivePage() {
             Premieres, screenings, and live events from across the continent
           </p>
         </div>
+
+        {/* Live Now */}
+        {liveNow.length > 0 && (
+          <section className="mb-12">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <h2 className="text-white text-xl font-bold">Live Now</h2>
+            </div>
+            <div className="grid gap-6">
+              {liveNow.map((stream) => (
+                <div key={stream.id} className="bg-zinc-950 border border-red-500/20 rounded-3xl overflow-hidden">
+                  <div className="grid md:grid-cols-2 gap-0">
+                    <div className="p-4 sm:p-6">
+                      {stream.embedUrl ? (
+                        <LiveStreamPlayer
+                          streamId={stream.id}
+                          embedUrl={stream.embedUrl}
+                          price={stream.price ?? 0}
+                          currency={stream.currency}
+                          startTime={stream.startTime}
+                        />
+                      ) : (
+                        <div className="relative aspect-video rounded-xl overflow-hidden">
+                          <Image src={stream.backdrop} alt={stream.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-6 sm:p-8 flex flex-col justify-center">
+                      <span className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase mb-3">
+                        {stream.host} &middot; {stream.country}
+                      </span>
+                      <h3 className="font-display text-white font-bold text-2xl sm:text-3xl mb-2">{stream.title}</h3>
+                      <ExpandableDescription text={stream.description} />
+                      <Link
+                        href={`/live/${stream.id}`}
+                        className="self-start mt-4 border border-red-500/30 hover:border-red-500/60 bg-red-500/10 text-red-400 text-sm font-medium px-7 py-3 rounded-full transition-all"
+                      >
+                        Watch Live
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Upcoming Events */}
         {upcoming.length > 0 ? (
@@ -79,25 +140,43 @@ export default function LivePage() {
                           </span>
                         ))}
                       </div>
-                      <div className="flex flex-col gap-4">
-                        <Link
-                          href={`/live/${stream.id}`}
-                          className="self-start border border-white/15 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm font-medium px-7 py-3 rounded-full transition-all"
-                        >
-                          View Event
-                        </Link>
-                        <div>
-                          <p className="text-zinc-600 text-[10px] uppercase tracking-[0.2em] mb-2">Watch live on the app</p>
-                          <AppDownload />
+                      {stream.embedUrl ? (
+                        <div className="flex flex-col gap-4">
+                          <LiveStreamPlayer
+                            streamId={stream.id}
+                            embedUrl={stream.embedUrl}
+                            price={stream.price ?? 0}
+                            currency={stream.currency}
+                            startTime={stream.startTime}
+                          />
+                          <Link
+                            href={`/live/${stream.id}`}
+                            className="self-start text-zinc-500 hover:text-red-400 text-xs transition-colors"
+                          >
+                            View full event page →
+                          </Link>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex flex-col gap-4">
+                          <Link
+                            href={`/live/${stream.id}`}
+                            className="self-start border border-white/15 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm font-medium px-7 py-3 rounded-full transition-all"
+                          >
+                            View Event
+                          </Link>
+                          <div>
+                            <p className="text-zinc-600 text-[10px] uppercase tracking-[0.2em] mb-2">Watch live on the app</p>
+                            <AppDownload />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </section>
-        ) : (
+        ) : liveNow.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <div className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center mb-5">
               <svg className="w-6 h-6 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +186,7 @@ export default function LivePage() {
             <h3 className="font-display text-xl text-zinc-500 mb-2">No live events right now</h3>
             <p className="text-zinc-700 text-sm">Check back soon for upcoming premieres and screenings.</p>
           </div>
-        )}
+        ) : null}
       </div>
     </main>
   );
