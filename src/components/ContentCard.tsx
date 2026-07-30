@@ -94,26 +94,3 @@ export default function ContentCard({ content, size = "md", fluid = false }: Con
     </Link>
   );
 }
-
-/** Honest "Coming soon" placeholder tile used to fill rows/grids. */
-export function ComingSoonCard({
-  size = "md",
-  fluid = false,
-}: {
-  size?: CardSize;
-  fluid?: boolean;
-}) {
-  return (
-    <div className={`relative ${frameClass(size, fluid)}`} aria-hidden="true">
-      <div className="relative aspect-video overflow-hidden rounded-xl border border-dashed border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black flex flex-col items-center justify-center gap-2">
-        <svg className="w-6 h-6 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zM7 4v16M17 4v16M3 9h4m10 0h4M3 15h4m10 0h4" />
-        </svg>
-        <span className="text-zinc-600 text-[9px] font-medium uppercase tracking-[0.25em]">Coming soon</span>
-      </div>
-      <div className="mt-2.5 px-0.5">
-        <div className="h-2.5 w-2/3 rounded bg-white/5" />
-      </div>
-    </div>
-  );
-}

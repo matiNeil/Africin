@@ -2,15 +2,13 @@
 
 import { useRef } from "react";
 import { Content } from "@/lib/data";
-import ContentCard, { ComingSoonCard } from "./ContentCard";
+import ContentCard from "./ContentCard";
 
 interface ContentRowProps {
   title: string;
   items?: Content[];
   subtitle?: string;
   viewAllHref?: string;
-  /** Number of "Coming soon" placeholder tiles to append after the real items. */
-  placeholderCount?: number;
 }
 
 export default function ContentRow({
@@ -18,7 +16,6 @@ export default function ContentRow({
   items = [],
   subtitle,
   viewAllHref,
-  placeholderCount = 0,
 }: ContentRowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -95,9 +92,6 @@ export default function ContentRow({
         >
           {items.map((item) => (
             <ContentCard key={item.id} content={item} />
-          ))}
-          {Array.from({ length: placeholderCount }).map((_, i) => (
-            <ComingSoonCard key={`ph-${i}`} />
           ))}
         </div>
       </div>

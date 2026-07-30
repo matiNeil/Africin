@@ -95,7 +95,6 @@ export default function Home() {
           title="Africin Originals"
           subtitle="Made for the continent"
           items={CONTENT}
-          placeholderCount={Math.max(0, 6 - CONTENT.length)}
           viewAllHref="/browse"
         />
 
@@ -158,12 +157,6 @@ export default function Home() {
             </div>
           </section>
         )}
-
-        <ContentRow
-          title="Coming Soon to Africin"
-          subtitle="More stories on the way"
-          placeholderCount={6}
-        />
       </div>
 
       {/* Get the app */}

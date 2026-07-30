@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithPopup,
   signOut,
   GoogleAuthProvider,
@@ -49,41 +50,25 @@ export async function requireRealUser(user: User | null): Promise<User | null> {
   return user;
 }
 
-/**
- * Signs a viewer in with email + password, transparently creating the account
- * on first purchase. Newer Firebase SDKs collapse "wrong password" and
- * "no such user" into the same `auth/invalid-credential` code (to prevent
- * account enumeration), so we can't tell them apart up front — we try
- * sign-in first, and only fall back to account creation if that fails.
- * A genuine existing account with the wrong password then surfaces via
- * `auth/email-already-in-use` on the create attempt.
- */
-export async function signInOrRegister(email: string, password: string): Promise<User> {
-  const auth = getFirebaseAuth();
-  try {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    return cred.user;
-  } catch (err) {
-    const code = (err as { code?: string })?.code;
-    if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        return cred.user;
-      } catch (createErr) {
-        const createCode = (createErr as { code?: string })?.code;
-        if (createCode === "auth/email-already-in-use") {
-          const wrongPassword = new Error("Incorrect password.");
-          (wrongPassword as Error & { code: string }).code = "auth/wrong-password";
-          throw wrongPassword;
-        }
-        throw createErr;
-      }
-    }
-    throw err;
-  }
+export async function signInWithEmail(email: string, password: string): Promise<User> {
+  const cred = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+  return cred.user;
+}
+
+export async function registerWithEmail(email: string, password: string): Promise<User> {
+  const cred = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
+  return cred.user;
+}
+
+export function resetPassword(email: string) {
+  return sendPasswordResetEmail(getFirebaseAuth(), email);
 }
 
 export async function signInWithGoogle(): Promise<User> {
   const cred = await signInWithPopup(getFirebaseAuth(), new GoogleAuthProvider());
   return cred.user;
+}
+
+export function signOutUser() {
+  return signOut(getFirebaseAuth());
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import AppDownload from "@/components/AppDownload";
+import SignInStatus from "@/components/SignInStatus";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -108,9 +108,8 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Get the app — apps are the only way to watch */}
             <div className="hidden sm:block">
-              <AppDownload variant="compact" />
+              <SignInStatus />
             </div>
 
             <button
@@ -172,8 +171,8 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <div className="px-4 pt-3">
-              <AppDownload variant="compact" className="w-full justify-center !py-2.5" />
+            <div className="px-4 pt-3 flex justify-center">
+              <SignInStatus />
             </div>
           </div>
         )}

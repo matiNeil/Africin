@@ -51,7 +51,7 @@ export default function LiveEventPage({ params }: { params: Promise<{ id: string
         <div className="grid md:grid-cols-[1fr_320px] gap-8 items-start">
 
           {/* Left — details */}
-          <div>
+          <div className="order-2 md:order-1">
             <p className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase mb-2">
               {stream.host} · {stream.country}
             </p>
@@ -97,8 +97,8 @@ export default function LiveEventPage({ params }: { params: Promise<{ id: string
             )}
           </div>
 
-          {/* Right — action card */}
-          <div className="bg-zinc-950 border border-white/10 rounded-2xl p-6 sticky top-24">
+          {/* Right — action card (shown first on mobile, right column on desktop) */}
+          <div className="order-1 md:order-2 bg-zinc-950 border border-white/10 rounded-2xl p-6 sticky top-24">
             {stream.embedUrl ? (
               <>
                 <div className="mb-5">

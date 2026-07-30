@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CONTENT, GENRES, COUNTRIES } from "@/lib/data";
-import ContentCard, { ComingSoonCard } from "@/components/ContentCard";
+import ContentCard from "@/components/ContentCard";
 
 export default function BrowseClient() {
   const searchParams = useSearchParams();
@@ -31,13 +30,6 @@ export default function BrowseClient() {
       return matchesGenre && matchesCountry && matchesType && matchesSearch;
     });
   }, [selectedGenre, selectedCountry, selectedType, search]);
-
-  // Pad the catalog with "Coming soon" tiles when not actively searching, so the
-  // grid reads as a full Netflix-style catalog rather than a near-empty page.
-  const padCount =
-    filtered.length > 0 && search.trim() === ""
-      ? Math.max(0, 12 - filtered.length)
-      : 0;
 
   const clearAll = () => {
     setSelectedGenre("All"); setSelectedCountry("All");
@@ -122,9 +114,6 @@ export default function BrowseClient() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {filtered.map((item) => (
               <ContentCard key={item.id} content={item} fluid />
-            ))}
-            {Array.from({ length: padCount }).map((_, i) => (
-              <ComingSoonCard key={`ph-${i}`} fluid />
             ))}
           </div>
         ) : (

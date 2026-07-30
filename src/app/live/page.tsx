@@ -22,8 +22,13 @@ export default function LivePage() {
     return () => clearInterval(t);
   }, []);
 
-  const liveNow = LIVE_STREAMS.filter((s) => isCurrentlyLive(s, now));
-  const upcoming = LIVE_STREAMS.filter((s) => !isCurrentlyLive(s, now) && new Date(s.startTime).getTime() > now);
+  const byStartTime = (a: LiveStream, b: LiveStream) =>
+    new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+
+  const liveNow = LIVE_STREAMS.filter((s) => isCurrentlyLive(s, now)).sort(byStartTime);
+  const upcoming = LIVE_STREAMS.filter((s) => !isCurrentlyLive(s, now) && new Date(s.startTime).getTime() > now).sort(
+    byStartTime
+  );
 
   return (
     <main className="min-h-screen bg-black pt-16 pb-12">
