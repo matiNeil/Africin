@@ -27,6 +27,8 @@ export default function LiveStreamPlayer({ streamId, embedUrl, price, currency =
   const [instructions, setInstructions] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
+  const [iframeReloadKey, setIframeReloadKey] = useState(0);
+
   const userRef = useRef<User | null>(null);
   const lastUidRef = useRef<string | null>(null);
   const tokenRef = useRef<string>("");
@@ -133,6 +135,17 @@ export default function LiveStreamPlayer({ streamId, embedUrl, price, currency =
     return () => clearInterval(t);
   }, []);
 
+  // The Cloudflare iframe player doesn't recover on its own when the
+  // network drops mid-stream — remount it once connectivity returns so
+  // playback resumes without the viewer having to refresh the tab.
+  useEffect(() => {
+    function handleOnline() {
+      setIframeReloadKey((k) => k + 1);
+    }
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, []);
+
   function handlePayClick() {
     setErrorMsg("");
     if (!userRef.current) {
@@ -187,6 +200,7 @@ export default function LiveStreamPlayer({ streamId, embedUrl, price, currency =
     return (
       <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
         <iframe
+          key={iframeReloadKey}
           src={embedUrl}
           style={{ border: "none", position: "absolute", top: 0, left: 0, height: "100%", width: "100%" }}
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
