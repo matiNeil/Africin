@@ -55,9 +55,9 @@ export default function LivePage() {
             <div className="grid gap-6">
               {liveNow.map((stream) => (
                 <div key={stream.id} className="bg-zinc-950 border border-red-500/20 rounded-3xl overflow-hidden">
-                  <div className="grid md:grid-cols-2 gap-0">
-                    <div className="p-4 sm:p-6">
-                      {stream.embedUrl ? (
+                  <div className="p-4 sm:p-6 pb-0">
+                    {stream.embedUrl ? (
+                      <div className="max-w-2xl">
                         <LiveStreamPlayer
                           streamId={stream.id}
                           embedUrl={stream.embedUrl}
@@ -65,25 +65,25 @@ export default function LivePage() {
                           currency={stream.currency}
                           startTime={stream.startTime}
                         />
-                      ) : (
-                        <div className="relative aspect-video rounded-xl overflow-hidden">
-                          <Image src={stream.backdrop} alt={stream.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-6 sm:p-8 flex flex-col justify-center">
-                      <span className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase mb-3">
-                        {stream.host} &middot; {stream.country}
-                      </span>
-                      <h3 className="font-display text-white font-bold text-2xl sm:text-3xl mb-2">{stream.title}</h3>
-                      <ExpandableDescription text={stream.description} />
-                      <Link
-                        href={`/live/${stream.id}`}
-                        className="self-start mt-4 border border-red-500/30 hover:border-red-500/60 bg-red-500/10 text-red-400 text-sm font-medium px-7 py-3 rounded-full transition-all"
-                      >
-                        Watch Live
-                      </Link>
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="relative aspect-video rounded-xl overflow-hidden">
+                        <Image src={stream.backdrop} alt={stream.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 672px" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-6 sm:p-8">
+                    <span className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase mb-3 block">
+                      {stream.host} &middot; {stream.country}
+                    </span>
+                    <h3 className="font-display text-white font-bold text-2xl sm:text-3xl mb-2">{stream.title}</h3>
+                    <ExpandableDescription text={stream.description} />
+                    <Link
+                      href={`/live/${stream.id}`}
+                      className="inline-block mt-4 border border-red-500/30 hover:border-red-500/60 bg-red-500/10 text-red-400 text-sm font-medium px-7 py-3 rounded-full transition-all"
+                    >
+                      Watch Live
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -101,81 +101,78 @@ export default function LivePage() {
                   key={stream.id}
                   className="bg-zinc-950 border border-white/10 rounded-3xl overflow-hidden hover:border-red-500/20 transition-colors"
                 >
-                  <div className="grid md:grid-cols-2 gap-0">
-                    {/* Image */}
-                    <div className="relative aspect-video md:aspect-auto md:min-h-[320px] overflow-hidden">
-                      <Image
-                        src={stream.backdrop}
-                        alt={stream.title}
-                        fill
-                        className="object-cover opacity-70"
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent to-zinc-950/80 hidden md:block" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent md:hidden" />
-                      <div className="absolute top-4 left-4 flex items-center gap-2">
-                        <div className="bg-red-500/90 text-black text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                          {stream.genre.includes("Concert") ? "Live Concert" : "Premiere"}
-                        </div>
-                        {(stream.price ?? 0) > 0 && (
-                          <div className="bg-black/60 backdrop-blur-sm text-red-500 text-[10px] font-bold px-2 py-1 rounded-full border border-red-500/30">
-                            ${stream.price}
-                          </div>
-                        )}
+                  {/* Banner image */}
+                  <div className="relative aspect-[21/9] sm:aspect-[3/1] overflow-hidden">
+                    <Image
+                      src={stream.backdrop}
+                      alt={stream.title}
+                      fill
+                      className="object-cover opacity-70"
+                      sizes="100vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
+                    <div className="absolute top-4 left-4 flex items-center gap-2">
+                      <div className="bg-red-500/90 text-black text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        {stream.genre.includes("Concert") ? "Live Concert" : "Premiere"}
                       </div>
-                    </div>
-
-                    {/* Info */}
-                    <div className="p-6 sm:p-8 flex flex-col justify-center">
-                      <span className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase mb-3">
-                        {stream.host} &middot; {stream.country}
-                      </span>
-                      <h3 className="font-display text-white font-bold text-2xl sm:text-3xl mb-2">
-                        {stream.title}
-                      </h3>
-                      <ExpandableDescription text={stream.description} />
-                      <div className="mb-6">
-                        <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Starts in</p>
-                        <CountdownTimer targetDate={stream.startTime} className="text-lg" />
-                      </div>
-                      <div className="flex flex-wrap gap-2 mb-6">
-                        {stream.genre.map((g) => (
-                          <span key={g} className="bg-white/5 border border-white/8 text-zinc-400 text-[10px] font-medium px-3 py-1.5 rounded-full uppercase tracking-wider">
-                            {g}
-                          </span>
-                        ))}
-                      </div>
-                      {stream.embedUrl ? (
-                        <div className="flex flex-col gap-4">
-                          <LiveStreamPlayer
-                            streamId={stream.id}
-                            embedUrl={stream.embedUrl}
-                            price={stream.price ?? 0}
-                            currency={stream.currency}
-                            startTime={stream.startTime}
-                          />
-                          <Link
-                            href={`/live/${stream.id}`}
-                            className="self-start text-zinc-500 hover:text-red-400 text-xs transition-colors"
-                          >
-                            View full event page →
-                          </Link>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-4">
-                          <Link
-                            href={`/live/${stream.id}`}
-                            className="self-start border border-white/15 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm font-medium px-7 py-3 rounded-full transition-all"
-                          >
-                            View Event
-                          </Link>
-                          <div>
-                            <p className="text-zinc-600 text-[10px] uppercase tracking-[0.2em] mb-2">Watch live on the app</p>
-                            <AppDownload />
-                          </div>
+                      {(stream.price ?? 0) > 0 && (
+                        <div className="bg-black/60 backdrop-blur-sm text-red-500 text-[10px] font-bold px-2 py-1 rounded-full border border-red-500/30">
+                          ${stream.price}
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Info */}
+                  <div className="p-6 sm:p-8">
+                    <span className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase mb-3 block">
+                      {stream.host} &middot; {stream.country}
+                    </span>
+                    <h3 className="font-display text-white font-bold text-2xl sm:text-3xl mb-2">
+                      {stream.title}
+                    </h3>
+                    <ExpandableDescription text={stream.description} />
+                    <div className="mb-6">
+                      <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Starts in</p>
+                      <CountdownTimer targetDate={stream.startTime} className="text-lg" />
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {stream.genre.map((g) => (
+                        <span key={g} className="bg-white/5 border border-white/8 text-zinc-400 text-[10px] font-medium px-3 py-1.5 rounded-full uppercase tracking-wider">
+                          {g}
+                        </span>
+                      ))}
+                    </div>
+                    {stream.embedUrl ? (
+                      <div className="max-w-md flex flex-col gap-4">
+                        <LiveStreamPlayer
+                          streamId={stream.id}
+                          embedUrl={stream.embedUrl}
+                          price={stream.price ?? 0}
+                          currency={stream.currency}
+                          startTime={stream.startTime}
+                        />
+                        <Link
+                          href={`/live/${stream.id}`}
+                          className="self-start text-zinc-500 hover:text-red-400 text-xs transition-colors"
+                        >
+                          View full event page →
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        <Link
+                          href={`/live/${stream.id}`}
+                          className="self-start border border-white/15 hover:border-red-500/30 bg-white/5 text-zinc-300 hover:text-red-500 text-sm font-medium px-7 py-3 rounded-full transition-all"
+                        >
+                          View Event
+                        </Link>
+                        <div>
+                          <p className="text-zinc-600 text-[10px] uppercase tracking-[0.2em] mb-2">Watch live on the app</p>
+                          <AppDownload />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

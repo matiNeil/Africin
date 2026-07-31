@@ -4,6 +4,7 @@ import { FEATURED, CONTENT, LIVE_STREAMS } from "@/lib/data";
 import CountdownTimer from "@/components/CountdownTimer";
 import AppDownload from "@/components/AppDownload";
 import ContentRow from "@/components/ContentRow";
+import LiveEventCard from "@/components/LiveEventCard";
 
 export default function Home() {
   return (
@@ -113,46 +114,12 @@ export default function Home() {
                   Explore all
                 </Link>
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {LIVE_STREAMS.map((s) => (
-                  <Link
-                    key={s.id}
-                    href={`/live/${s.id}`}
-                    className="group relative rounded-xl overflow-hidden ring-1 ring-white/10 hover:ring-red-500/50 transition-all"
-                  >
-                    <div className="relative aspect-video">
-                      <Image
-                        src={s.thumbnail}
-                        alt={s.title}
-                        fill
-                        className="object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                        sizes="(max-width: 640px) 100vw, 50vw"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-                      <div className="absolute top-3 left-3 flex items-center gap-2">
-                        <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                          Live Event
-                        </span>
-                        {s.price != null && s.price > 0 && (
-                          <span className="bg-black/70 text-red-300 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/30">
-                            ${s.price}
-                          </span>
-                        )}
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <h3 className="text-white font-semibold text-base sm:text-lg leading-tight">
-                          {s.title}
-                        </h3>
-                        <p className="text-zinc-400 text-xs mt-1">
-                          {s.host} &middot; {s.country}
-                        </p>
-                        <div className="mt-2">
-                          <CountdownTimer targetDate={s.startTime} className="text-xs" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+              <div className="flex gap-3 sm:gap-4 no-scrollbar overflow-x-auto py-2">
+                {[...LIVE_STREAMS]
+                  .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                  .map((s) => (
+                    <LiveEventCard key={s.id} stream={s} />
+                  ))}
               </div>
             </div>
           </section>
