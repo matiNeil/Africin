@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { LiveStream } from "@/lib/data";
@@ -17,6 +20,9 @@ interface LiveEventCardProps {
 }
 
 export default function LiveEventCard({ stream, size = "md" }: LiveEventCardProps) {
+  const [now] = useState(() => Date.now());
+  const hasEnded = stream.endTime ? now >= new Date(stream.endTime).getTime() : false;
+
   return (
     <Link
       href={`/live/${stream.id}`}
@@ -33,8 +39,12 @@ export default function LiveEventCard({ stream, size = "md" }: LiveEventCardProp
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
         <div className="absolute top-2 left-2">
-          <span className="bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-            Live Event
+          <span
+            className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+              hasEnded ? "bg-black/70 text-zinc-200 border border-white/20" : "bg-red-500 text-white"
+            }`}
+          >
+            {hasEnded ? "On Demand" : "Live Event"}
           </span>
         </div>
 

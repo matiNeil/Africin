@@ -96,7 +96,7 @@ export const LIVE_STREAMS: LiveStream[] = [
     country: "Zimbabwe",
     genre: ["Music", "Concert", "Live"],
     chatEnabled: true,
-    embedUrl: "https://customer-fiuwdxvaro0msdf8.cloudflarestream.com/79ac9aa893ed5c9f26a883f5b053867e/iframe",
+    embedUrl: "https://customer-fiuwdxvaro0msdf8.cloudflarestream.com/bf42c8f6c1f0cf92bb75a297263521f7/iframe",
   },
 ];
 

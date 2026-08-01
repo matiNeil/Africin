@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { LIVE_STREAMS } from "@/lib/data";
@@ -13,9 +13,12 @@ export default function LiveEventPage({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   const stream = LIVE_STREAMS.find((s) => s.id === id);
 
+  const [now] = useState(() => Date.now());
+
   if (!stream) return notFound();
 
-  const isUpcoming = new Date(stream.startTime).getTime() > Date.now();
+  const isUpcoming = new Date(stream.startTime).getTime() > now;
+  const hasEnded = stream.endTime ? new Date(stream.endTime).getTime() <= now : false;
   const isConcert = stream.genre.includes("Concert");
 
   return (
@@ -41,6 +44,11 @@ export default function LiveEventPage({ params }: { params: Promise<{ id: string
           {isUpcoming && (
             <span className="bg-black/60 backdrop-blur-sm border border-red-500/30 text-red-400 text-[10px] font-bold px-3 py-1 rounded-full">
               Upcoming
+            </span>
+          )}
+          {hasEnded && (
+            <span className="bg-black/60 backdrop-blur-sm border border-white/20 text-zinc-300 text-[10px] font-bold px-3 py-1 rounded-full">
+              On Demand
             </span>
           )}
         </div>

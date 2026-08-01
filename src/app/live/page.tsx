@@ -15,6 +15,10 @@ function isCurrentlyLive(s: LiveStream, now: number) {
   return started && !ended;
 }
 
+function hasEnded(s: LiveStream, now: number) {
+  return s.endTime ? now >= new Date(s.endTime).getTime() : false;
+}
+
 export default function LivePage() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -28,6 +32,9 @@ export default function LivePage() {
   const liveNow = LIVE_STREAMS.filter((s) => isCurrentlyLive(s, now)).sort(byStartTime);
   const upcoming = LIVE_STREAMS.filter((s) => !isCurrentlyLive(s, now) && new Date(s.startTime).getTime() > now).sort(
     byStartTime
+  );
+  const onDemand = LIVE_STREAMS.filter((s) => hasEnded(s, now) && s.embedUrl).sort(
+    (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
   );
 
   return (
@@ -92,7 +99,7 @@ export default function LivePage() {
         )}
 
         {/* Upcoming Events */}
-        {upcoming.length > 0 ? (
+        {upcoming.length > 0 && (
           <section>
             <h2 className="text-white text-xl font-bold mb-6">Upcoming Events</h2>
             <div className="grid gap-6">
@@ -178,7 +185,46 @@ export default function LivePage() {
               ))}
             </div>
           </section>
-        ) : liveNow.length === 0 ? (
+        )}
+
+        {/* On Demand — recordings of events that have ended */}
+        {onDemand.length > 0 && (
+          <section>
+            <h2 className="text-white text-xl font-bold mb-6">Watch On Demand</h2>
+            <div className="grid gap-6">
+              {onDemand.map((stream) => (
+                <div key={stream.id} className="bg-zinc-950 border border-white/10 rounded-3xl overflow-hidden">
+                  <div className="p-4 sm:p-6 pb-0">
+                    <div className="max-w-2xl">
+                      <LiveStreamPlayer
+                        streamId={stream.id}
+                        embedUrl={stream.embedUrl!}
+                        price={stream.price ?? 0}
+                        currency={stream.currency}
+                        startTime={stream.startTime}
+                      />
+                    </div>
+                  </div>
+                  <div className="p-6 sm:p-8">
+                    <span className="text-zinc-500 text-[10px] font-medium tracking-[0.25em] uppercase mb-3 block">
+                      {stream.host} &middot; {stream.country}
+                    </span>
+                    <h3 className="font-display text-white font-bold text-2xl sm:text-3xl mb-2">{stream.title}</h3>
+                    <ExpandableDescription text={stream.description} />
+                    <Link
+                      href={`/live/${stream.id}`}
+                      className="inline-block mt-4 border border-white/15 hover:border-red-500/60 bg-white/5 text-zinc-300 hover:text-red-400 text-sm font-medium px-7 py-3 rounded-full transition-all"
+                    >
+                      Watch Now
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {liveNow.length === 0 && upcoming.length === 0 && onDemand.length === 0 && (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <div className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center mb-5">
               <svg className="w-6 h-6 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +234,7 @@ export default function LivePage() {
             <h3 className="font-display text-xl text-zinc-500 mb-2">No live events right now</h3>
             <p className="text-zinc-700 text-sm">Check back soon for upcoming premieres and screenings.</p>
           </div>
-        ) : null}
+        )}
       </div>
     </main>
   );
