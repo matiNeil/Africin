@@ -31,14 +31,14 @@ async function verifyTransaction(
 ): Promise<JWSTransactionDecodedPayload> {
   let lastError: unknown;
   for (const environment of [Environment.PRODUCTION, Environment.SANDBOX]) {
-    const verifier = new SignedDataVerifier(
-      [rootCertificate],
-      true,
-      environment,
-      BUNDLE_ID,
-      APPLE_APP_APPLE_ID
-    );
     try {
+      const verifier = new SignedDataVerifier(
+        [rootCertificate],
+        true,
+        environment,
+        BUNDLE_ID,
+        APPLE_APP_APPLE_ID
+      );
       return await verifier.verifyAndDecodeTransaction(signedTransaction);
     } catch (err) {
       lastError = err;
