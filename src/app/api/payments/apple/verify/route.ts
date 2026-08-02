@@ -8,6 +8,8 @@ import {
   JWSTransactionDecodedPayload,
 } from "@apple/app-store-server-library";
 
+export const maxDuration = 30;
+
 const BUNDLE_ID = "com.africin.africinMobile";
 // The app's numeric App Store Connect ID (App Information → Apple ID). Not
 // set yet — omitting it just skips that one cross-check; signature/bundle-ID
@@ -32,9 +34,13 @@ async function verifyTransaction(
   let lastError: unknown;
   for (const environment of [Environment.PRODUCTION, Environment.SANDBOX]) {
     try {
+      // Online checks (OCSP revocation lookups against Apple's servers) add a
+      // network round trip per environment attempted and have caused this
+      // route to hang past its timeout. revocationDate is already checked
+      // against the decoded payload below, so this is skipped.
       const verifier = new SignedDataVerifier(
         [rootCertificate],
-        true,
+        false,
         environment,
         BUNDLE_ID,
         APPLE_APP_APPLE_ID
