@@ -5,24 +5,30 @@ import { useState, useRef, useCallback } from "react";
 type Variant = "badges" | "compact";
 
 interface AppDownloadProps {
-  /** "badges" = App Store + Google Play store buttons, "compact" = single "Get the App" pill */
+  /** "badges" = App Store (coming soon) + Android direct-download buttons, "compact" = single Android download pill */
   variant?: Variant;
   className?: string;
   /** Optional label override for the compact pill */
   label?: string;
 }
 
+// Direct APK download — see version.json (same host) for the in-app update
+// check that keeps this in sync with the latest published build.
+const ANDROID_DOWNLOAD_URL = "https://www.africin.tv/download/africin.apk";
+
 /**
  * App download call-to-action.
  *
- * The mobile apps are not published yet, so pressing any button surfaces a
- * transient "Coming soon" toast instead of linking to a store. When the apps
- * go live, swap the `handleComingSoon` onClick handlers for real store links.
+ * Android: direct APK download (Play Store closed-testing review is
+ * pending, so this isn't a Play Store link/badge — deliberately not using
+ * the Google Play trademark here since it would misrepresent the link).
+ * iOS: still in App Store review, so that button stays a "Coming soon" toast
+ * until it's approved — swap its onClick for a real App Store link then.
  */
 export default function AppDownload({
   variant = "badges",
   className = "",
-  label = "Get the App",
+  label = "Download for Android",
 }: AppDownloadProps) {
   const [toast, setToast] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -41,63 +47,57 @@ export default function AppDownload({
     >
       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
       <span className="text-sm text-white font-medium">
-        Coming soon — the Africin app launches shortly.
+        iOS app coming soon — currently in App Store review.
       </span>
     </div>
   ) : null;
 
   if (variant === "compact") {
     return (
-      <>
-        <button
-          onClick={handleComingSoon}
-          className={`flex items-center gap-2 bg-red-500 hover:bg-red-600 text-black text-xs font-semibold tracking-wider uppercase px-4 py-1.5 rounded-full transition-all duration-300 ${className}`}
-        >
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M17 1.01 7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
-          </svg>
-          {label}
-        </button>
-        {Toast}
-      </>
+      <a
+        href={ANDROID_DOWNLOAD_URL}
+        className={`flex items-center gap-2 bg-red-500 hover:bg-red-600 text-black text-xs font-semibold tracking-wider uppercase px-4 py-1.5 rounded-full transition-all duration-300 ${className}`}
+      >
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17 1.01 7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
+        </svg>
+        {label}
+      </a>
     );
   }
 
   return (
     <>
       <div className={`flex flex-wrap items-center gap-3 ${className}`}>
-        {/* App Store */}
+        {/* App Store — coming soon (in review) */}
         <button
           onClick={handleComingSoon}
-          aria-label="Download on the App Store — coming soon"
+          aria-label="Download on the App Store — coming soon, in App Store review"
           className="group flex items-center gap-3 bg-white text-black hover:bg-zinc-200 rounded-xl pl-4 pr-5 py-2.5 transition-all duration-300 shadow-lg shadow-black/30"
         >
           <svg className="w-7 h-7 flex-none" viewBox="0 0 24 24" fill="currentColor">
             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.84M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
           </svg>
           <span className="text-left leading-tight">
-            <span className="block text-[9px] uppercase tracking-wider text-zinc-600">Download on the</span>
+            <span className="block text-[9px] uppercase tracking-wider text-zinc-600">Coming soon on the</span>
             <span className="block text-base font-semibold -mt-0.5">App Store</span>
           </span>
         </button>
 
-        {/* Google Play */}
-        <button
-          onClick={handleComingSoon}
-          aria-label="Get it on Google Play — coming soon"
+        {/* Android — direct APK download (not a Play Store link/badge) */}
+        <a
+          href={ANDROID_DOWNLOAD_URL}
+          aria-label="Download the Africin app for Android (direct APK)"
           className="group flex items-center gap-3 bg-white text-black hover:bg-zinc-200 rounded-xl pl-4 pr-5 py-2.5 transition-all duration-300 shadow-lg shadow-black/30"
         >
-          <svg className="w-6 h-6 flex-none" viewBox="0 0 24 24">
-            <path fill="#EA4335" d="M3.6 1.3C3.3 1.6 3.1 2 3.1 2.6v18.8c0 .6.2 1 .5 1.3l.1.1L14.3 12.1v-.2L3.7 1.2l-.1.1z" />
-            <path fill="#FBBC04" d="M17.8 15.7l-3.5-3.5v-.2l3.5-3.5.1.1 4.2 2.4c1.2.7 1.2 1.8 0 2.5l-4.3 2.4-.1-.1z" />
-            <path fill="#4285F4" d="M17.9 15.6L14.3 12 3.6 22.7c.4.4 1.1.5 1.8.1l12.5-7.2" />
-            <path fill="#34A853" d="M17.9 8.4L5.4 1.2C4.7.8 4 .9 3.6 1.3L14.3 12l3.6-3.6z" />
+          <svg className="w-6 h-6 flex-none" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85a.637.637 0 0 0-.83.22l-1.88 3.24a11.463 11.463 0 0 0-8.94 0L5.65 5.67a.637.637 0 0 0-.87-.2c-.28.18-.37.54-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52M7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5m10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5" />
           </svg>
           <span className="text-left leading-tight">
-            <span className="block text-[9px] uppercase tracking-wider text-zinc-600">Get it on</span>
-            <span className="block text-base font-semibold -mt-0.5">Google Play</span>
+            <span className="block text-[9px] uppercase tracking-wider text-zinc-600">Download for</span>
+            <span className="block text-base font-semibold -mt-0.5">Android (APK)</span>
           </span>
-        </button>
+        </a>
       </div>
       {Toast}
     </>
