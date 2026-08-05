@@ -11,17 +11,28 @@ interface BrowseClientProps {
   countries: string[];
 }
 
+// Only "movie"/"series" are valid filter values — anything else (missing,
+// typo'd) falls back to "all" rather than silently matching nothing.
+function parseType(value: string | null): "all" | "movie" | "series" {
+  return value === "movie" || value === "series" ? value : "all";
+}
+
 export default function BrowseClient({ items, genres, countries }: BrowseClientProps) {
   const searchParams = useSearchParams();
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [selectedCountry, setSelectedCountry] = useState("All");
-  const [selectedType, setSelectedType] = useState<"all" | "movie" | "series">("all");
+  const [selectedType, setSelectedType] = useState<"all" | "movie" | "series">(() =>
+    parseType(searchParams.get("type")),
+  );
   const [search, setSearch] = useState(searchParams.get("q") || "");
 
-  // Sync search input when URL ?q param changes (e.g. from navbar search)
+  // Sync search + type from the URL (e.g. the navbar's Movies/Series links
+  // are plain <Link>s to /browse?type=..., not something that unmounts this
+  // component if you're already on /browse, so state needs to react to
+  // param changes here rather than only reading them once on mount).
   useEffect(() => {
-    const q = searchParams.get("q") || "";
-    setSearch(q);
+    setSearch(searchParams.get("q") || "");
+    setSelectedType(parseType(searchParams.get("type")));
   }, [searchParams]);
 
   const filtered = useMemo(() => {
