@@ -30,8 +30,11 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-black">
-      {/* Billboard hero */}
-      <section className="relative h-[88vh] min-h-[600px] max-h-[920px] flex items-end pb-20 sm:pb-28">
+      {/* Billboard hero — kept modest in height: FEATURED.backdrop is the
+          portrait poster image (no separate wide banner asset exists yet),
+          so a shorter band needs less upscale via object-cover to fill it,
+          which keeps it looking sharp instead of blurry. */}
+      <section className="relative h-[56vh] min-h-[420px] max-h-[600px] flex items-end pb-14 sm:pb-20">
         <div className="absolute inset-0">
           <Image
             src={FEATURED.backdrop}
