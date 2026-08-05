@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
-import { LIVE_STREAMS } from "@/lib/data";
 import { getAllContent } from "@/lib/content-repo";
+import { getAllLiveStreams } from "@/lib/live-repo";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Paynow } = require("paynow");
 
@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
     );
 
     paynow.resultUrl = `${BASE_URL}/api/payments/result`;
-    const isLiveContent = LIVE_STREAMS.some((s) => s.id === contentId);
+    const liveStreams = await getAllLiveStreams();
+    const isLiveContent = liveStreams.some((s) => s.id === contentId);
     paynow.returnUrl = isLiveContent
       ? `${BASE_URL}/live/${contentId}?payment=success`
       : `${BASE_URL}/watch/${contentId}?payment=success`;
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
 
     // Look up content title and price from data
     const contentItem = (await getAllContent()).find((c) => c.id === contentId)
-      ?? LIVE_STREAMS.find((s) => s.id === contentId);
+      ?? liveStreams.find((s) => s.id === contentId);
     const itemTitle = contentItem?.title ?? "Africin Content";
     const itemPrice = contentItem?.price ?? 4.99;
 

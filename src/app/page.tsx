@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { LIVE_STREAMS } from "@/lib/data";
 import { getAllContent } from "@/lib/content-repo";
+import { getAllLiveStreams } from "@/lib/live-repo";
 import CountdownTimer from "@/components/CountdownTimer";
 import AppDownload from "@/components/AppDownload";
 import ContentRow from "@/components/ContentRow";
@@ -12,9 +12,21 @@ export const revalidate = 60;
 
 export default async function Home() {
   const content = await getAllContent();
+  const liveStreams = await getAllLiveStreams();
   // Homepage hero: an explicitly `featured` title wins, then a `premiere`,
   // then just the first title in the catalog.
   const FEATURED = content.find((c) => c.featured) ?? content.find((c) => c.premiere) ?? content[0];
+
+  // The catalog is entirely Firestore-driven now (see content-repo.ts) — if
+  // it's ever unreachable there's nothing to build a hero out of. Degrade to
+  // an empty state instead of crashing the page.
+  if (!FEATURED) {
+    return (
+      <main className="min-h-screen bg-black flex items-center justify-center">
+        <p className="text-zinc-500 text-sm">No titles available right now — check back soon.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-black">
@@ -109,7 +121,7 @@ export default async function Home() {
           viewAllHref="/browse"
         />
 
-        {LIVE_STREAMS.length > 0 && (
+        {liveStreams.length > 0 && (
           <section className="py-4 sm:py-5">
             <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
               <div className="flex items-center gap-3 mb-3">
@@ -125,7 +137,7 @@ export default async function Home() {
                 </Link>
               </div>
               <div className="flex gap-3 sm:gap-4 no-scrollbar overflow-x-auto py-2">
-                {[...LIVE_STREAMS]
+                {[...liveStreams]
                   .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
                   .map((s) => (
                     <LiveEventCard key={s.id} stream={s} />

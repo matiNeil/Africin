@@ -39,6 +39,7 @@ function mapContentDoc(id: string, data: DocumentData): Content {
     rating: typeof data.rating === "string" ? data.rating : "",
     country: typeof data.country === "string" ? data.country : "",
     type: data.type === "series" ? "series" : "movie",
+    episodes: Array.isArray(data.episodes) ? data.episodes.length : undefined,
     price: typeof data.price === "number" && data.price > 0 ? data.price : undefined,
     currency: typeof data.currency === "string" ? data.currency : undefined,
     premiere: data.premiere === true,
@@ -48,32 +49,32 @@ function mapContentDoc(id: string, data: DocumentData): Content {
   };
 }
 
-async function fetchPublishedMovies(): Promise<Content[]> {
+async function fetchPublishedContent(): Promise<Content[]> {
   try {
     const snapshot = await adminDb.collection("content").where("status", "==", "published").get();
     return snapshot.docs
       .map((doc) => mapContentDoc(doc.id, doc.data()))
-      .filter((c) => c.type === "movie" && c.title);
+      .filter((c) => c.title);
   } catch (err) {
     // Firestore being unreachable (or, in local dev, admin credentials not
     // being available) should never take the whole catalog down — just fall
     // back to the hand-curated titles below.
-    console.error("Failed to load published movies from Firestore:", err);
+    console.error("Failed to load published content from Firestore:", err);
     return [];
   }
 }
 
-const getCachedPublishedMovies = unstable_cache(fetchPublishedMovies, ["published-movies"], {
+const getCachedPublishedContent = unstable_cache(fetchPublishedContent, ["published-content"], {
   revalidate: 60,
   tags: ["content"],
 });
 
 // The website's hand-curated titles (data.ts) plus anything published
-// through the admin dashboard — merged so a new admin upload appears here
-// automatically, without needing a code change. Static entries win on id
-// collisions (there shouldn't be any in practice).
+// through the admin dashboard (movies and series) — merged so a new admin
+// upload appears here automatically, without needing a code change. Static
+// entries win on id collisions (there shouldn't be any in practice).
 export async function getAllContent(): Promise<Content[]> {
-  const remote = await getCachedPublishedMovies();
+  const remote = await getCachedPublishedContent();
   const staticIds = new Set(CONTENT.map((c) => c.id));
   return [...CONTENT, ...remote.filter((c) => !staticIds.has(c.id))];
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
-import { LIVE_STREAMS } from "@/lib/data";
+import { getAllLiveStreams } from "@/lib/live-repo";
 import { sendPurchaseConfirmation } from "@/lib/email";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Paynow } = require("paynow");
@@ -81,13 +81,14 @@ export async function POST(req: NextRequest) {
 
       // Send confirmation email (best-effort — never throws)
       if (purchase.userEmail) {
+        const liveStreams = await getAllLiveStreams();
         await sendPurchaseConfirmation({
           to: purchase.userEmail,
           contentTitle: purchase.contentTitle || "Africin Content",
           amount: purchase.amount || 0,
           currency: purchase.currency || "USD",
           contentId: purchase.contentId,
-          isLive: LIVE_STREAMS.some((s) => s.id === purchase.contentId),
+          isLive: liveStreams.some((s) => s.id === purchase.contentId),
           paidAt,
         });
       }

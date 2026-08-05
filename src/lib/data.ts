@@ -40,80 +40,16 @@ export interface LiveStream {
   embedUrl?: string;        // web player embed (e.g. Cloudflare Stream iframe src)
 }
 
-export const CONTENT: Content[] = [
-  {
-    id: "16",
-    title: "Sizolobola: The Solemnity",
-    description:
-      "A powerful Zimbabwean feature film that tells the story of Njabulo Khumalo and Makatendeka Seke, two lovers from different ethnic backgrounds whose dream of marriage reignites deep-rooted family and historical tensions. As their families confront painful memories, cultural differences, and generations of mistrust, the couple becomes a symbol of hope — proving the power of love to heal old wounds and unite a nation.",
-    thumbnail: "/sizolobola-poster.jpg",
-    backdrop: "/sizolobola-poster.jpg",
-    year: 2026,
-    duration: "Feature Film",
-    genre: ["Drama", "Romance", "Family"],
-    rating: "PG-13",
-    country: "Zimbabwe",
-    type: "movie",
-    premiere: true,
-    premiereDate: "2026-08-10T18:00:00Z",
-    price: 4.99,
-    currency: "USD",
-    videoUrl: "https://customer-fiuwdxvaro0msdf8.cloudflarestream.com/7cdbcd54073c495ff5075a91e12d62b0/iframe",
-  },
-];
+// Hand-curated fallback/bootstrap titles, merged with whatever's published
+// through the admin dashboard (see content-repo.ts's getAllContent). Empty
+// now that every title is managed there instead — every title that used to
+// be hardcoded here (Sizolobola, and the three live events below) is now a
+// real Firestore doc, so keeping them here too just duplicated them on
+// /browse (two different ids for the same title, since these static entries
+// never shared an id with their Firestore counterpart).
+export const CONTENT: Content[] = [];
 
 // ── Live Streams ────────────────────────────────────────────────────────────
-export const LIVE_STREAMS: LiveStream[] = [
-  {
-    id: "live-1",
-    title: "Sizolobola: Premiere Screening",
-    description:
-      "Watch the premiere of \"Sizolobola: The Solemnity\" — a powerful Zimbabwean love story. Join the live red carpet event, followed by the full film and a cast Q&A.",
-    thumbnail: "/sizolobola-poster.jpg",
-    backdrop: "/sizolobola-poster.jpg",
-    isLive: false,
-    startTime: "2026-08-10T17:00:00Z",
-    endTime: "2026-08-10T22:00:00Z",
-    price: 4.99,
-    currency: "USD",
-    host: "Africin Originals",
-    country: "Zimbabwe",
-    genre: ["Drama", "Romance", "Premiere"],
-    chatEnabled: true,
-  },
-  {
-    id: "live-2",
-    title: "Cheso Power Festival",
-    description:
-      "Chipaz Promotions presents the Cheso Power Festival — a massive live concert featuring Makhadzi (live from SA), Freeman HKD, Killer T, Kurai Makore, Tocky Vibes, Jnr Spragga, Bling4, Xiba, Ndolwane Super Sounds, Peter Moyo, DJs DJ Gunz, MC Banso & ChillSpot. Live at Alex Sports Club.",
-    thumbnail: "/cheso-poster.jpg",
-    backdrop: "/cheso-poster.jpg",
-    isLive: false,
-    startTime: "2026-07-31T16:00:00Z",
-    endTime: "2026-07-31T23:00:00Z",
-    price: 2.99,
-    currency: "USD",
-    host: "Chipaz Promotions",
-    country: "Zimbabwe",
-    genre: ["Music", "Concert", "Live"],
-    chatEnabled: true,
-    embedUrl: "https://customer-fiuwdxvaro0msdf8.cloudflarestream.com/bf42c8f6c1f0cf92bb75a297263521f7/iframe",
-  },
-  {
-    id: "live-3",
-    title: "Africin Spinners: Bulawayo Chapter",
-    description:
-      "Africin Spinners rolls into Bulawayo — Zimbabwe's ultimate car spinning showcase, with crews representing all 10 provinces plus guest drivers from Botswana, Zambia, Malawi, and Eswatini. Live from Arena Zex, Bulawayo, from 09:00 till late.",
-    thumbnail: "/africin-spinners-poster.jpg",
-    backdrop: "/africin-spinners-poster.jpg",
-    isLive: false,
-    startTime: "2026-10-03T09:00:00Z",
-    price: 1.99,
-    currency: "USD",
-    host: "ZKS Spin Arena",
-    country: "Zimbabwe",
-    genre: ["Motorsport", "Live"],
-    chatEnabled: true,
-    embedUrl: "https://customer-fiuwdxvaro0msdf8.cloudflarestream.com/79ac9aa893ed5c9f26a883f5b053867e/iframe",
-  },
-];
+// See getAllLiveStreams() in live-repo.ts — same "hand-curated fallback,
+// currently empty" reasoning as CONTENT above.
+export const LIVE_STREAMS: LiveStream[] = [];
