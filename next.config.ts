@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
       // Cloudflare Images delivery (admin-uploaded posters/banners).
       { protocol: "https", hostname: "imagedelivery.net" },
     ],
+    // next/image's optimizer serves these through /_next/image?url=<encoded
+    // full URL>&w=...&q=... — many ad-blocker/privacy-extension filter lists
+    // block requests whose query string itself contains a nested http(s)
+    // URL (it looks like a tracking-redirect pattern), which silently killed
+    // every poster on the site for anyone running one. `unoptimized` renders
+    // a plain <img src="..."> with the original URL instead, sidestepping
+    // that proxy entirely. These are already reasonably-sized JPEGs / a CDN
+    // (Cloudflare Images), so the resize/format optimization isn't worth
+    // trading away image reliability for.
+    unoptimized: true,
   },
 };
 
