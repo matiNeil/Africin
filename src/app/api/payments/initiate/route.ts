@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
-import { CONTENT, LIVE_STREAMS } from "@/lib/data";
+import { LIVE_STREAMS } from "@/lib/data";
+import { getAllContent } from "@/lib/content-repo";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Paynow } = require("paynow");
 
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Look up content title and price from data
-    const contentItem = CONTENT.find((c) => c.id === contentId)
+    const contentItem = (await getAllContent()).find((c) => c.id === contentId)
       ?? LIVE_STREAMS.find((s) => s.id === contentId);
     const itemTitle = contentItem?.title ?? "Africin Content";
     const itemPrice = contentItem?.price ?? 4.99;

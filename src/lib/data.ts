@@ -11,13 +11,14 @@ export interface Content {
   country: string;
   type: "movie" | "series";
   episodes?: number;
-  videoUrl?: string;
+  videoUrl?: string;        // trailer clip (Cloudflare Stream URL) — autoplays muted as the watch-page hero background
   // Monetisation
   price?: number;           // price in USD (0 = free)
   currency?: string;        // "USD" | "ZAR" | "NGN" | "KES" | "GHS"
   premiere?: boolean;       // highlighted as a premiere release
   premiereDate?: string;    // ISO date string — future = upcoming, past = available now
   ppv?: boolean;            // pay-per-view even after premiere window
+  featured?: boolean;       // pins this title as the homepage hero, ahead of the premiere/first-item fallback
 }
 
 export interface LiveStream {
@@ -55,9 +56,9 @@ export const CONTENT: Content[] = [
     type: "movie",
     premiere: true,
     premiereDate: "2026-08-10T18:00:00Z",
-    price: 6.99,
+    price: 4.99,
     currency: "USD",
-    videoUrl: "https://vimeo.com/1198480130/1b0ef67983",
+    videoUrl: "https://customer-fiuwdxvaro0msdf8.cloudflarestream.com/7cdbcd54073c495ff5075a91e12d62b0/iframe",
   },
 ];
 
@@ -73,7 +74,7 @@ export const LIVE_STREAMS: LiveStream[] = [
     isLive: false,
     startTime: "2026-08-10T17:00:00Z",
     endTime: "2026-08-10T22:00:00Z",
-    price: 6.99,
+    price: 4.99,
     currency: "USD",
     host: "Africin Originals",
     country: "Zimbabwe",
@@ -98,19 +99,21 @@ export const LIVE_STREAMS: LiveStream[] = [
     chatEnabled: true,
     embedUrl: "https://customer-fiuwdxvaro0msdf8.cloudflarestream.com/bf42c8f6c1f0cf92bb75a297263521f7/iframe",
   },
+  {
+    id: "live-3",
+    title: "Africin Spinners: Bulawayo Chapter",
+    description:
+      "Africin Spinners rolls into Bulawayo — Zimbabwe's ultimate car spinning showcase, with crews representing all 10 provinces plus guest drivers from Botswana, Zambia, Malawi, and Eswatini. Live from Arena Zex, Bulawayo, from 09:00 till late.",
+    thumbnail: "/africin-spinners-poster.jpg",
+    backdrop: "/africin-spinners-poster.jpg",
+    isLive: false,
+    startTime: "2026-10-03T09:00:00Z",
+    price: 1.99,
+    currency: "USD",
+    host: "ZKS Spin Arena",
+    country: "Zimbabwe",
+    genre: ["Motorsport", "Live"],
+    chatEnabled: true,
+    embedUrl: "https://customer-fiuwdxvaro0msdf8.cloudflarestream.com/79ac9aa893ed5c9f26a883f5b053867e/iframe",
+  },
 ];
-
-export const GENRES = [
-  "All",
-  "Drama",
-  "Romance",
-  "Family",
-];
-
-export const COUNTRIES = [
-  "All",
-  "Zimbabwe",
-];
-
-export const FEATURED = CONTENT[0];
-export const PREMIERES = CONTENT.filter((c) => c.premiere);

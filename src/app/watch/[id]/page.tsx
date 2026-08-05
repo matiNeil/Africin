@@ -2,24 +2,32 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CONTENT } from "@/lib/data";
+import { getAllContent } from "@/lib/content-repo";
 import CountdownTimer from "@/components/CountdownTimer";
 import AppDownload from "@/components/AppDownload";
+import HeroBackdrop from "@/components/HeroBackdrop";
+import MoviePurchaseCard from "@/components/MoviePurchaseCard";
 
 interface WatchPageProps {
   params: Promise<{ id: string }>;
 }
 
+export const revalidate = 60;
+
+// Prebuilds the hand-curated titles; Firestore-sourced titles render
+// on-demand the first time they're requested (dynamicParams defaults true).
 export async function generateStaticParams() {
   return CONTENT.map((item) => ({ id: item.id }));
 }
 
 export default async function WatchPage({ params }: WatchPageProps) {
   const { id } = await params;
-  const content = CONTENT.find((c) => c.id === id);
+  const allContent = await getAllContent();
+  const content = allContent.find((c) => c.id === id);
 
   if (!content) notFound();
 
-  const related = CONTENT.filter(
+  const related = allContent.filter(
     (c) => c.id !== content.id && c.genre.some((g) => content.genre.includes(g))
   ).slice(0, 6);
 
@@ -29,10 +37,11 @@ export default async function WatchPage({ params }: WatchPageProps) {
 
   return (
     <main className="min-h-screen bg-black pt-16">
-      {/* Backdrop hero (no in-browser playback — watching happens in the app) */}
+      {/* Backdrop hero (no in-browser playback of the full title — watching
+          happens in the app; the background is just a muted preview clip) */}
       <section className="relative">
         <div className="relative w-full aspect-video max-h-[70vh] overflow-hidden">
-          <Image src={content.backdrop} alt={content.title} fill priority className="object-cover opacity-50" sizes="100vw" />
+          <HeroBackdrop title={content.title} backdrop={content.backdrop} videoUrl={content.videoUrl} />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent" />
           <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm border border-red-500/40 text-red-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -82,14 +91,19 @@ export default async function WatchPage({ params }: WatchPageProps) {
 
             <p className="text-zinc-400 leading-relaxed mb-8 max-w-2xl">{content.description}</p>
 
-            {/* Watch on the app CTA */}
-            <div className="rounded-2xl border border-red-500/15 bg-gradient-to-br from-red-950/20 to-zinc-950/60 p-6 max-w-xl">
-              <h2 className="font-display font-semibold text-lg text-white mb-1">Watch on the Africin app</h2>
-              <p className="text-zinc-400 text-sm mb-5">
-                {content.title} is available in the Africin mobile app. Download the app to {isUpcoming ? "pre-order and watch the premiere" : "stream now"}.
-              </p>
-              <AppDownload />
-            </div>
+            {/* Buy on the web (payment only — playback always happens in the
+                app), or a plain app-download CTA for free titles */}
+            {(content.price ?? 0) > 0 ? (
+              <MoviePurchaseCard contentId={content.id} price={content.price!} currency={content.currency} />
+            ) : (
+              <div className="rounded-2xl border border-red-500/15 bg-gradient-to-br from-red-950/20 to-zinc-950/60 p-6 max-w-xl">
+                <h2 className="font-display font-semibold text-lg text-white mb-1">Watch on the Africin app</h2>
+                <p className="text-zinc-400 text-sm mb-5">
+                  {content.title} is available in the Africin mobile app. Download the app to {isUpcoming ? "pre-order and watch the premiere" : "stream now"}.
+                </p>
+                <AppDownload />
+              </div>
+            )}
           </div>
 
           {/* Related */}

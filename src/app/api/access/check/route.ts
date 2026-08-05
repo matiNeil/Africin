@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
-import { CONTENT, LIVE_STREAMS } from "@/lib/data";
+import { LIVE_STREAMS } from "@/lib/data";
+import { getAllContent } from "@/lib/content-repo";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Paynow } = require("paynow");
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const item = CONTENT.find((c) => c.id === contentId) ?? LIVE_STREAMS.find((s) => s.id === contentId);
+    const item = (await getAllContent()).find((c) => c.id === contentId) ?? LIVE_STREAMS.find((s) => s.id === contentId);
     if (!item) {
       return NextResponse.json({ error: "Unknown content" }, { status: 404 });
     }

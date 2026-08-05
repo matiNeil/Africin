@@ -2,10 +2,16 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { CONTENT, GENRES, COUNTRIES } from "@/lib/data";
+import type { Content } from "@/lib/data";
 import ContentCard from "@/components/ContentCard";
 
-export default function BrowseClient() {
+interface BrowseClientProps {
+  items: Content[];
+  genres: string[];
+  countries: string[];
+}
+
+export default function BrowseClient({ items, genres, countries }: BrowseClientProps) {
   const searchParams = useSearchParams();
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [selectedCountry, setSelectedCountry] = useState("All");
@@ -19,7 +25,7 @@ export default function BrowseClient() {
   }, [searchParams]);
 
   const filtered = useMemo(() => {
-    return CONTENT.filter((item) => {
+    return items.filter((item) => {
       const matchesGenre = selectedGenre === "All" || item.genre.includes(selectedGenre);
       const matchesCountry = selectedCountry === "All" || item.country === selectedCountry;
       const matchesType = selectedType === "all" || item.type === selectedType;
@@ -29,7 +35,7 @@ export default function BrowseClient() {
         item.description.toLowerCase().includes(search.toLowerCase());
       return matchesGenre && matchesCountry && matchesType && matchesSearch;
     });
-  }, [selectedGenre, selectedCountry, selectedType, search]);
+  }, [items, selectedGenre, selectedCountry, selectedType, search]);
 
   const clearAll = () => {
     setSelectedGenre("All"); setSelectedCountry("All");
@@ -77,7 +83,7 @@ export default function BrowseClient() {
 
           {/* Genres */}
           <div className="flex flex-wrap gap-2">
-            {GENRES.map((genre) => (
+            {genres.map((genre) => (
               <button key={genre} onClick={() => setSelectedGenre(genre)}
                 className={`px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300 ${
                   selectedGenre === genre
@@ -91,7 +97,7 @@ export default function BrowseClient() {
 
           {/* Countries */}
           <div className="flex flex-wrap gap-2">
-            {COUNTRIES.map((country) => (
+            {countries.map((country) => (
               <button key={country} onClick={() => setSelectedCountry(country)}
                 className={`px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-all duration-300 ${
                   selectedCountry === country

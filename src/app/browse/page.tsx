@@ -1,7 +1,14 @@
 import { Suspense } from "react";
 import BrowseClient from "./BrowseClient";
+import { getAllContent } from "@/lib/content-repo";
 
-export default function BrowsePage() {
+export const revalidate = 60;
+
+export default async function BrowsePage() {
+  const items = await getAllContent();
+  const genres = ["All", ...Array.from(new Set(items.flatMap((c) => c.genre))).sort()];
+  const countries = ["All", ...Array.from(new Set(items.map((c) => c.country).filter(Boolean))).sort()];
+
   return (
     <Suspense
       fallback={
@@ -10,7 +17,7 @@ export default function BrowsePage() {
         </main>
       }
     >
-      <BrowseClient />
+      <BrowseClient items={items} genres={genres} countries={countries} />
     </Suspense>
   );
 }

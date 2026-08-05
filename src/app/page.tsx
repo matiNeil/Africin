@@ -1,12 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FEATURED, CONTENT, LIVE_STREAMS } from "@/lib/data";
+import { LIVE_STREAMS } from "@/lib/data";
+import { getAllContent } from "@/lib/content-repo";
 import CountdownTimer from "@/components/CountdownTimer";
 import AppDownload from "@/components/AppDownload";
 import ContentRow from "@/components/ContentRow";
 import LiveEventCard from "@/components/LiveEventCard";
+import TrailerButton from "@/components/TrailerButton";
 
-export default function Home() {
+export const revalidate = 60;
+
+export default async function Home() {
+  const content = await getAllContent();
+  // Homepage hero: an explicitly `featured` title wins, then a `premiere`,
+  // then just the first title in the catalog.
+  const FEATURED = content.find((c) => c.featured) ?? content.find((c) => c.premiere) ?? content[0];
+
   return (
     <main className="min-h-screen bg-black">
       {/* Billboard hero */}
@@ -67,6 +76,7 @@ export default function Home() {
                 </svg>
                 Play
               </Link>
+              {FEATURED.videoUrl && <TrailerButton title={FEATURED.title} videoUrl={FEATURED.videoUrl} />}
               <Link
                 href={`/watch/${FEATURED.id}`}
                 className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur text-white font-semibold text-sm px-6 py-2.5 rounded-md border border-white/10 transition-colors"
@@ -95,7 +105,7 @@ export default function Home() {
         <ContentRow
           title="Africin Originals"
           subtitle="Made for the continent"
-          items={CONTENT}
+          items={content}
           viewAllHref="/browse"
         />
 
