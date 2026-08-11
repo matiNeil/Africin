@@ -96,10 +96,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Idempotency: the client redelivers unfinished/unacknowledged
-    // transactions on every launch — never double-write the same purchase.
+    // transactions on every launch — never double-write the same purchase for
+    // the same user. Scoped by userId too, not just the purchase token: a
+    // non-consumable is tied to the Google account, not the Firebase account,
+    // so Play redelivers the same token to a *different* Firebase user signed
+    // in on that device (e.g. a shared test account, or a family member
+    // reusing a Google account). Without the userId scope, that second
+    // account's verify call would match this user's existing row and return
+    // early without ever writing its own purchase — leaving it stuck
+    // "confirming" forever despite holding a genuine, verified purchase.
     const existing = await adminDb
       .collection("purchases")
       .where("reference", "==", purchaseToken)
+      .where("userId", "==", userId)
       .limit(1)
       .get();
     if (!existing.empty) {

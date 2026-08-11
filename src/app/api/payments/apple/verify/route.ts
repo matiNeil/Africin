@@ -128,10 +128,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Idempotency: StoreKit redelivers unfinished transactions (app relaunch,
-    // retried verification, etc.) — never double-write the same purchase.
+    // retried verification, etc.) — never double-write the same purchase for
+    // the same user. Scoped by userId too, not just the transaction id: a
+    // non-consumable is tied to the Apple ID, not the Firebase account, so
+    // StoreKit redelivers the same transaction to a *different* Firebase user
+    // signed in on that device (e.g. a shared sandbox tester, or a family
+    // member reusing an Apple ID). Without the userId scope, that second
+    // account's verify call would match this user's existing row and return
+    // early without ever writing its own purchase — leaving it stuck
+    // "confirming" forever despite holding a genuine, verified transaction.
     const existing = await adminDb
       .collection("purchases")
       .where("reference", "==", payload.transactionId)
+      .where("userId", "==", userId)
       .limit(1)
       .get();
     if (!existing.empty) {
