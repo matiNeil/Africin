@@ -23,34 +23,44 @@ const rootCertificate = fs.readFileSync(
 );
 
 /**
- * Verifies a StoreKit 2 signed transaction against Apple's servers. Tries
- * Production first (per Apple's guidance) then Sandbox, since there is no
- * way to know up front whether a given device is a TestFlight/sandbox tester
- * or a real App Store customer.
+ * Verifies a StoreKit 2 signed transaction against Apple's servers. There is
+ * no way to know up front whether a given device is a TestFlight/sandbox
+ * tester or a real App Store customer, so both environments are checked —
+ * in parallel rather than Production-then-Sandbox, since sequential checks
+ * double the network round-trip time and have pushed this route past its
+ * timeout under review-environment network conditions even though a manual
+ * test (same network as this server) comfortably finishes in time.
  */
 async function verifyTransaction(
   signedTransaction: string
 ): Promise<JWSTransactionDecodedPayload> {
-  let lastError: unknown;
-  for (const environment of [Environment.PRODUCTION, Environment.SANDBOX]) {
-    try {
-      // Online checks (OCSP revocation lookups against Apple's servers) add a
-      // network round trip per environment attempted and have caused this
-      // route to hang past its timeout. revocationDate is already checked
-      // against the decoded payload below, so this is skipped.
-      const verifier = new SignedDataVerifier(
-        [rootCertificate],
-        false,
-        environment,
-        BUNDLE_ID,
-        APPLE_APP_APPLE_ID
-      );
-      return await verifier.verifyAndDecodeTransaction(signedTransaction);
-    } catch (err) {
-      lastError = err;
-    }
+  const attempt = (environment: Environment) => {
+    // Online checks (OCSP revocation lookups against Apple's servers) add a
+    // network round trip per environment attempted and have caused this
+    // route to hang past its timeout. revocationDate is already checked
+    // against the decoded payload below, so this is skipped.
+    const verifier = new SignedDataVerifier(
+      [rootCertificate],
+      false,
+      environment,
+      BUNDLE_ID,
+      APPLE_APP_APPLE_ID
+    );
+    return verifier.verifyAndDecodeTransaction(signedTransaction);
+  };
+
+  try {
+    return await Promise.any([
+      attempt(Environment.PRODUCTION),
+      attempt(Environment.SANDBOX),
+    ]);
+  } catch (err) {
+    // Both rejected: Promise.any throws an AggregateError wrapping both
+    // underlying errors. Surface the first one — either is representative,
+    // and callers only log/relay a single message.
+    if (err instanceof AggregateError) throw err.errors[0];
+    throw err;
   }
-  throw lastError;
 }
 
 export async function POST(req: NextRequest) {
