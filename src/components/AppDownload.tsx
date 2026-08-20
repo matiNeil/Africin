@@ -12,23 +12,20 @@ interface AppDownloadProps {
   label?: string;
 }
 
-// Direct APK download — see version.json (same host) for the in-app update
-// check that keeps this in sync with the latest published build.
-const ANDROID_DOWNLOAD_URL = "https://www.africin.tv/download/africin.apk";
+const ANDROID_DOWNLOAD_URL =
+  "https://play.google.com/store/apps/details?id=com.africin.africin_mobile";
 
 /**
  * App download call-to-action.
  *
- * Android: direct APK download (Play Store closed-testing review is
- * pending, so this isn't a Play Store link/badge — deliberately not using
- * the Google Play trademark here since it would misrepresent the link).
+ * Android: links to the Play Store listing.
  * iOS: still in App Store review, so that button stays a "Coming soon" toast
  * until it's approved — swap its onClick for a real App Store link then.
  */
 export default function AppDownload({
   variant = "badges",
   className = "",
-  label = "Download for Android",
+  label = "Get it on Google Play",
 }: AppDownloadProps) {
   const [toast, setToast] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,18 +81,18 @@ export default function AppDownload({
           </span>
         </button>
 
-        {/* Android — direct APK download (not a Play Store link/badge) */}
+        {/* Android — Play Store listing */}
         <a
           href={ANDROID_DOWNLOAD_URL}
-          aria-label="Download the Africin app for Android (direct APK)"
+          aria-label="Get the Africin app on Google Play"
           className="group flex items-center gap-3 bg-white text-black hover:bg-zinc-200 rounded-xl pl-4 pr-5 py-2.5 transition-all duration-300 shadow-lg shadow-black/30"
         >
           <svg className="w-6 h-6 flex-none" fill="currentColor" viewBox="0 0 24 24">
             <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85a.637.637 0 0 0-.83.22l-1.88 3.24a11.463 11.463 0 0 0-8.94 0L5.65 5.67a.637.637 0 0 0-.87-.2c-.28.18-.37.54-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52M7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5m10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5" />
           </svg>
           <span className="text-left leading-tight">
-            <span className="block text-[9px] uppercase tracking-wider text-zinc-600">Download for</span>
-            <span className="block text-base font-semibold -mt-0.5">Android (APK)</span>
+            <span className="block text-[9px] uppercase tracking-wider text-zinc-600">Get it on</span>
+            <span className="block text-base font-semibold -mt-0.5">Google Play</span>
           </span>
         </a>
       </div>
