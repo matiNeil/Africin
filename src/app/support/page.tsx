@@ -20,7 +20,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Where can I download the app?",
-    a: "The Africin app is launching soon on the App Store and Google Play. Tap a download button on this site to be taken to the store once it's live.",
+    a: "The Africin app is available now on the App Store and Google Play. Tap a download button on this site to be taken straight to the store.",
   },
   {
     q: "How do payments and pre-orders work?",
