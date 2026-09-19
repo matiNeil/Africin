@@ -2,25 +2,29 @@ import Image from "next/image";
 import Link from "next/link";
 import { getAllContent } from "@/lib/content-repo";
 import { getAllLiveStreams } from "@/lib/live-repo";
-import CountdownTimer from "@/components/CountdownTimer";
+import { getViewCounts } from "@/lib/view-counts";
 import AppDownload from "@/components/AppDownload";
 import ContentRow from "@/components/ContentRow";
 import LiveEventCard from "@/components/LiveEventCard";
-import TrailerButton from "@/components/TrailerButton";
+import HeroCarousel from "@/components/HeroCarousel";
+import TrailerHistoryRow from "@/components/TrailerHistoryRow";
 
 export const revalidate = 60;
 
 export default async function Home() {
   const content = await getAllContent();
   const liveStreams = await getAllLiveStreams();
-  // Homepage hero: an explicitly `featured` title wins, then a `premiere`,
-  // then just the first title in the catalog.
-  const FEATURED = content.find((c) => c.featured) ?? content.find((c) => c.premiere) ?? content[0];
+
+  // Homepage hero: rotates through every explicitly `featured` title —
+  // falls back to the first title (matching the old single-FEATURED
+  // behavior) if none are ticked, same as the mobile app's home screen.
+  const featuredItems = content.filter((c) => c.featured);
+  const heroItems = featuredItems.length > 0 ? featuredItems : content.slice(0, 1);
 
   // The catalog is entirely Firestore-driven now (see content-repo.ts) — if
   // it's ever unreachable there's nothing to build a hero out of. Degrade to
   // an empty state instead of crashing the page.
-  if (!FEATURED) {
+  if (heroItems.length === 0) {
     return (
       <main className="min-h-screen bg-black flex items-center justify-center">
         <p className="text-zinc-500 text-sm">No titles available right now — check back soon.</p>
@@ -28,94 +32,18 @@ export default async function Home() {
     );
   }
 
+  const newArrivals = [...content]
+    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
+    .slice(0, 20);
+  const series = content.filter((c) => c.type === "series");
+  const viewCounts = await getViewCounts();
+  const trending = [...content]
+    .sort((a, b) => (viewCounts[b.id] ?? 0) - (viewCounts[a.id] ?? 0))
+    .slice(0, 20);
+
   return (
     <main className="min-h-screen bg-black">
-      {/* Billboard hero — kept modest in height: FEATURED.backdrop is the
-          portrait poster image (no separate wide banner asset exists yet),
-          so a shorter band needs less upscale via object-cover to fill it,
-          which keeps it looking sharp instead of blurry. min-h must stay
-          tall enough for the bottom-anchored (items-end) content block —
-          go too short and its top edge rides up under the fixed navbar. */}
-      <section className="relative h-[68vh] min-h-[560px] max-h-[760px] flex items-end pb-14 sm:pb-20">
-        <div className="absolute inset-0">
-          <Image
-            src={FEATURED.backdrop}
-            alt={FEATURED.title}
-            fill
-            preload
-            className="object-cover object-[center_18%]"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 hero-gradient" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-black/40" />
-        </div>
-
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <Image
-                src="/logo.png"
-                alt="Africin"
-                width={90}
-                height={16}
-                className="h-4 w-auto opacity-80 [mix-blend-mode:screen]"
-              />
-              <span className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase">
-                {FEATURED.premiere ? "Premiere" : "Featured Film"}
-              </span>
-            </div>
-
-            <h1 className="font-display font-bold text-4xl sm:text-6xl lg:text-7xl text-white leading-[1.04] tracking-tight mb-4">
-              {FEATURED.title}
-            </h1>
-
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-4 text-sm">
-              <span className="text-red-400 font-semibold">{FEATURED.country}</span>
-              <span className="text-zinc-500">{FEATURED.year}</span>
-              <span className="border border-zinc-600 text-zinc-300 text-[10px] font-medium px-1.5 py-0.5 rounded">
-                {FEATURED.rating}
-              </span>
-              <span className="text-zinc-400">{FEATURED.duration}</span>
-              <span className="hidden sm:inline text-zinc-500">{FEATURED.genre.join("  \u00b7  ")}</span>
-            </div>
-
-            <p className="text-zinc-300 text-sm sm:text-base leading-relaxed mb-6 max-w-xl line-clamp-3">
-              {FEATURED.description}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href={`/watch/${FEATURED.id}`}
-                className="inline-flex items-center gap-2 bg-white hover:bg-white/90 text-black font-semibold text-sm px-6 py-2.5 rounded-md transition-colors"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                Play
-              </Link>
-              {FEATURED.videoUrl && <TrailerButton title={FEATURED.title} videoUrl={FEATURED.videoUrl} />}
-              <Link
-                href={`/watch/${FEATURED.id}`}
-                className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur text-white font-semibold text-sm px-6 py-2.5 rounded-md border border-white/10 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                More Info
-              </Link>
-            </div>
-
-            {FEATURED.premiereDate && (
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-400">Premieres in</span>
-                <CountdownTimer targetDate={FEATURED.premiereDate} className="text-sm" />
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black to-transparent" />
-      </section>
+      <HeroCarousel items={heroItems} />
 
       {/* Content rows */}
       <div className="relative z-10 pb-6">
@@ -125,6 +53,13 @@ export default async function Home() {
           items={content}
           viewAllHref="/browse"
         />
+
+        {newArrivals.length > 0 && <ContentRow title="New Arrivals" items={newArrivals} />}
+        {series.length > 0 && (
+          <ContentRow title="Series" items={series} viewAllHref="/browse?type=series" />
+        )}
+        {trending.length > 0 && <ContentRow title="Trending" items={trending} />}
+        <TrailerHistoryRow content={content} />
 
         {liveStreams.length > 0 && (
           <section className="py-4 sm:py-5">

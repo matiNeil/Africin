@@ -19,6 +19,7 @@ export interface Content {
   premiereDate?: string;    // ISO date string — future = upcoming, past = available now
   ppv?: boolean;            // pay-per-view even after premiere window
   featured?: boolean;       // pins this title as the homepage hero, ahead of the premiere/first-item fallback
+  createdAt?: string;       // ISO date string — when added to the catalog, powers "New Arrivals"
 }
 
 export interface LiveStream {

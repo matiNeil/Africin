@@ -2,10 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { doc, getFirestore, setDoc } from "firebase/firestore";
+import { getFirebaseApp, watchAuthState, requireRealUser } from "@/lib/firebase-client";
 
 interface TrailerButtonProps {
   title: string;
   videoUrl: string;
+  contentId: string;
+}
+
+// Best-effort — mirrors the mobile app's watch_screen.dart tracking write,
+// same collection/doc-id shape, so "Trailers You've Watched" reflects plays
+// from either platform. Only writes when already signed in; never prompts
+// (watching a trailer shouldn't require an account).
+function trackTrailerWatch(contentId: string) {
+  const unsubscribe = watchAuthState(async (rawUser) => {
+    unsubscribe();
+    const user = await requireRealUser(rawUser);
+    if (!user) return;
+    const db = getFirestore(getFirebaseApp());
+    await setDoc(
+      doc(db, "trailerHistory", `${user.uid}_${contentId}`),
+      { userId: user.uid, contentId, watchedAt: new Date().toISOString() },
+      { merge: true },
+    ).catch(() => {});
+  });
 }
 
 // Same Cloudflare Stream embed as the background hero clip, but played with
@@ -16,7 +37,7 @@ function buildPlayableEmbedUrl(videoUrl: string): string {
   return `${base}?${params.toString()}`;
 }
 
-export default function TrailerButton({ title, videoUrl }: TrailerButtonProps) {
+export default function TrailerButton({ title, videoUrl, contentId }: TrailerButtonProps) {
   const [open, setOpen] = useState(false);
 
   // Lock background scroll and allow Escape to close while the modal is up.
@@ -42,7 +63,10 @@ export default function TrailerButton({ title, videoUrl }: TrailerButtonProps) {
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          trackTrailerWatch(contentId);
+        }}
         className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur text-white font-semibold text-sm px-6 py-2.5 rounded-md border border-white/10 transition-colors"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

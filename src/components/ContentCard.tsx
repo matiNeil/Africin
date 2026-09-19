@@ -29,7 +29,9 @@ export default function ContentCard({ content, size = "md", fluid = false }: Con
       href={`/watch/${content.id}`}
       className={`group relative z-0 hover:z-30 ${frameClass(size, fluid)}`}
     >
-      <div className="relative aspect-video overflow-hidden rounded-xl bg-zinc-900 ring-1 ring-white/10 shadow-lg shadow-black/40 transition-all duration-300 group-hover:scale-[1.06] group-hover:-translate-y-1 group-hover:ring-red-500/60 group-hover:shadow-2xl group-hover:shadow-red-950/50">
+      {/* Poster art is portrait (the admin's "Poster" upload field, distinct
+          from "Banner image" → backdrop) — aspect-video here cropped it badly. */}
+      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-zinc-900 ring-1 ring-white/10 shadow-lg shadow-black/40 transition-all duration-300 group-hover:scale-[1.06] group-hover:-translate-y-1 group-hover:ring-red-500/60 group-hover:shadow-2xl group-hover:shadow-red-950/50">
         <Image
           src={content.thumbnail}
           alt={content.title}

@@ -45,6 +45,7 @@ function mapContentDoc(id: string, data: DocumentData): Content {
     premiere: data.premiere === true,
     premiereDate: toISODate(data.premiereDate),
     featured: data.featured === true,
+    createdAt: toISODate(data.createdAt),
     videoUrl: embedUrlFor(data.trailerCloudflareUid) ?? embedUrlFor(data.cloudflareUid),
   };
 }
