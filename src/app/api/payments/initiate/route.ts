@@ -139,13 +139,15 @@ export async function POST(req: NextRequest) {
       paidAt: null,
     };
 
-    if (method === "ecocash" || method === "onemoney") {
-      // Mobile money express checkout
-      if (!phone) {
+    if (method === "ecocash" || method === "onemoney" || method === "innbucks") {
+      // Mobile money / InnBucks express checkout. InnBucks doesn't need a
+      // phone number — the customer authorizes via the InnBucks app/QR
+      // instead of a USSD prompt.
+      if (method !== "innbucks" && !phone) {
         return NextResponse.json({ error: "Phone number required for mobile payment" }, { status: 400 });
       }
 
-      const response = await paynow.sendMobile(payment, phone, method);
+      const response = await paynow.sendMobile(payment, phone ?? "", method);
 
       if (!response) {
         return NextResponse.json({ error: "No response from Paynow. Check your integration credentials." }, { status: 502 });
@@ -160,6 +162,8 @@ export async function POST(req: NextRequest) {
           purchaseId: purchaseRef.id,
           instructions: response.instructions || "Check your phone for the payment prompt.",
           pollUrl: response.pollUrl,
+          isInnbucks: response.isInnbucks ?? false,
+          innbucksInfo: response.innbucks_info ?? null,
         });
       } else {
         const errMsg = response.error || "Payment failed";
