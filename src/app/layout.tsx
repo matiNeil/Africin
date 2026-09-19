@@ -29,12 +29,6 @@ export default function RootLayout({
         <SplashScreen />
         <Navbar />
         {children}
-        <footer className="border-t border-white/5 py-5 mt-auto">
-          <p className="text-center text-gray-600 text-xs tracking-wide">
-            Powered by{" "}
-            <span className="text-red-500 font-semibold">ForgeStackX</span>
-          </p>
-        </footer>
       </body>
     </html>
   );
