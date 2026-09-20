@@ -35,7 +35,7 @@ export default function HeroBackdrop({ title, backdrop, videoUrl }: HeroBackdrop
   const embedUrl = buildBackgroundEmbedUrl(videoUrl);
 
   return (
-    <div className="absolute inset-0 opacity-50">
+    <div className="absolute inset-0 opacity-90">
       <Image src={backdrop} alt={title} fill priority className="object-cover" sizes="100vw" />
       {embedUrl && (
         <iframe

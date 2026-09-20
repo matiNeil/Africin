@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import type { Content } from "@/lib/data";
 import CountdownTimer from "./CountdownTimer";
@@ -35,18 +34,11 @@ export default function HeroCarousel({ items }: HeroCarouselProps) {
     <section className="relative h-[68vh] min-h-[560px] max-h-[760px] flex items-end pb-14 sm:pb-20">
       <HeroBackdrop title={active.title} backdrop={active.backdrop} videoUrl={active.videoUrl} />
       <div className="absolute inset-0 hero-gradient" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-black/40" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <div className="flex items-center gap-3 mb-4">
-            <Image
-              src="/logo-wordmark.png"
-              alt="Africin"
-              width={1672}
-              height={241}
-              className="h-4 w-auto opacity-90"
-            />
             <span className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase">
               {active.premiere ? "Premiere" : "Featured Film"}
             </span>
