@@ -74,19 +74,19 @@ export default function SignInStatus() {
           {user.email?.[0] ?? "?"}
         </button>
         {open && (
-          <div className="absolute right-0 mt-2 w-64 rounded-xl bg-zinc-900 border border-white/10 p-2 z-50 shadow-2xl shadow-black/50">
-            <div className="px-3 py-2 border-b border-white/10 mb-1">
-              <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Signed in as</p>
-              <p className="text-white text-xs truncate">{user.email}</p>
+          <div className="absolute right-0 mt-2 w-64 rounded-xl bg-surface border border-hairline p-2 z-50 shadow-2xl shadow-black/20 dark:shadow-black/50">
+            <div className="px-3 py-2 border-b border-hairline mb-1">
+              <p className="text-subtle text-[10px] uppercase tracking-widest">Signed in as</p>
+              <p className="text-foreground text-xs truncate">{user.email}</p>
             </div>
             <button
               onClick={handleRestore}
               disabled={restoring}
-              className="w-full text-left px-3 py-2 rounded-lg text-zinc-300 hover:bg-white/5 text-xs disabled:opacity-60 transition-colors"
+              className="w-full text-left px-3 py-2 rounded-lg text-muted hover:bg-hairline text-xs disabled:opacity-60 transition-colors"
             >
               {restoring ? "Restoring…" : "Restore Purchases"}
             </button>
-            {restoreMsg && <p className="px-3 py-1 text-[11px] text-zinc-500">{restoreMsg}</p>}
+            {restoreMsg && <p className="px-3 py-1 text-[11px] text-subtle">{restoreMsg}</p>}
             <button
               onClick={() => signOutUser()}
               className="w-full text-left px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 text-xs transition-colors"
@@ -103,13 +103,13 @@ export default function SignInStatus() {
     <div className="relative" ref={boxRef}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="border border-white/20 hover:border-red-500/40 text-white text-xs font-medium px-4 py-2 rounded-full transition-colors"
+        className="border border-hairline-strong hover:border-red-500/40 text-foreground text-xs font-medium px-4 py-2 rounded-full transition-colors"
       >
         Sign In
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-80 z-50">
-          <AuthForm onSignedIn={() => setOpen(false)} onCancel={() => setOpen(false)} />
+          <AuthForm variant="theme" onSignedIn={() => setOpen(false)} onCancel={() => setOpen(false)} />
         </div>
       )}
     </div>

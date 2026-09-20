@@ -31,7 +31,7 @@ export default function ContentCard({ content, size = "md", fluid = false }: Con
     >
       {/* Poster art is portrait (the admin's "Poster" upload field, distinct
           from "Banner image" → backdrop) — aspect-video here cropped it badly. */}
-      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-zinc-900 ring-1 ring-white/10 shadow-lg shadow-black/40 transition-all duration-300 group-hover:scale-[1.06] group-hover:-translate-y-1 group-hover:ring-red-500/60 group-hover:shadow-2xl group-hover:shadow-red-950/50">
+      <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-surface ring-1 ring-hairline shadow-lg shadow-black/20 dark:shadow-black/40 transition-all duration-300 group-hover:scale-[1.06] group-hover:-translate-y-1 group-hover:ring-red-500/60 group-hover:shadow-2xl group-hover:shadow-red-950/50">
         <Image
           src={content.thumbnail}
           alt={content.title}
@@ -86,10 +86,10 @@ export default function ContentCard({ content, size = "md", fluid = false }: Con
       </div>
 
       <div className="mt-2.5 px-0.5">
-        <h3 className="text-zinc-200 text-sm font-medium truncate group-hover:text-white transition-colors duration-300">
+        <h3 className="text-foreground/90 text-sm font-medium truncate group-hover:text-foreground transition-colors duration-300">
           {content.title}
         </h3>
-        <p className="text-zinc-600 text-xs mt-0.5 truncate">
+        <p className="text-subtle text-xs mt-0.5 truncate">
           {content.genre.slice(0, 2).join(" · ")}
         </p>
       </div>

@@ -19,7 +19,7 @@ export default function LiveEventPageClient({ stream }: { stream: LiveStream }) 
   const isConcert = stream.genre.includes("Concert");
 
   return (
-    <main className="min-h-screen bg-black pt-16">
+    <main className="min-h-screen bg-background pt-16">
       {/* Hero backdrop */}
       <div className="relative h-[55vh] min-h-[380px]">
         <Image
@@ -60,17 +60,17 @@ export default function LiveEventPageClient({ stream }: { stream: LiveStream }) 
             <p className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase mb-2">
               {stream.host} · {stream.country}
             </p>
-            <h1 className="font-display font-bold text-4xl sm:text-5xl text-white leading-tight mb-3">
+            <h1 className="font-display font-bold text-4xl sm:text-5xl text-foreground leading-tight mb-3">
               {stream.title}
             </h1>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-6 max-w-xl">
+            <p className="text-muted text-sm leading-relaxed mb-6 max-w-xl">
               {stream.description}
             </p>
 
             {/* Genre tags */}
             <div className="flex flex-wrap gap-2 mb-6">
               {stream.genre.map((g) => (
-                <span key={g} className="bg-white/5 border border-white/10 text-zinc-400 text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">
+                <span key={g} className="bg-surface border border-hairline text-muted text-[10px] px-3 py-1 rounded-full uppercase tracking-wider">
                   {g}
                 </span>
               ))}
@@ -79,10 +79,10 @@ export default function LiveEventPageClient({ stream }: { stream: LiveStream }) 
             {/* Countdown */}
             {isUpcoming && (
               <div className="mb-6">
-                <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">
+                <p className="text-subtle text-xs uppercase tracking-widest mb-2">
                   {isConcert ? "Concert starts in" : "Premiere in"}
                 </p>
-                <CountdownTimer targetDate={stream.startTime} className="text-xl" />
+                <CountdownTimer targetDate={stream.startTime} className="text-xl" variant="theme" />
               </div>
             )}
 
@@ -90,9 +90,9 @@ export default function LiveEventPageClient({ stream }: { stream: LiveStream }) 
             {isUpcoming && (stream.price ?? 0) > 0 && (
               <div className="bg-red-700/10 border border-red-700/30 rounded-2xl px-5 py-4 max-w-xl">
                 <p className="text-red-400 text-sm font-semibold mb-1">🎟️ Pre-Order Available Now</p>
-                <p className="text-zinc-400 text-xs leading-relaxed">
+                <p className="text-muted text-xs leading-relaxed">
                   Secure your live stream access today. The event goes live on{" "}
-                  <span className="text-white font-medium">
+                  <span className="text-foreground font-medium">
                     {new Date(stream.startTime).toLocaleDateString("en-GB", {
                       day: "numeric", month: "long", year: "numeric"
                     })}
@@ -102,7 +102,9 @@ export default function LiveEventPageClient({ stream }: { stream: LiveStream }) 
             )}
           </div>
 
-          {/* Right — action card (shown first on mobile, right column on desktop) */}
+          {/* Right — action card: kept permanently dark like MoviePurchaseCard,
+              a deliberate "spotlight" panel for the purchase/watch action
+              regardless of site theme. */}
           <div className="order-1 md:order-2 bg-zinc-950 border border-white/10 rounded-2xl p-6 sticky top-24">
             {stream.embedUrl ? (
               <>

@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
+// Mirrors the mobile app's splash_screen.dart: a full-bleed white background
+// (kept white so the logo's black + red marks stay legible) with the logo
+// simply fading in, held briefly, then the whole screen fades out.
 export default function SplashScreen() {
   const [phase, setPhase] = useState<"enter" | "hold" | "exit" | "done">("enter");
 
   useEffect(() => {
-    // Logo animates in → hold → fade out → unmount
-    const holdTimer = setTimeout(() => setPhase("hold"), 800);
-    const exitTimer = setTimeout(() => setPhase("exit"), 3500);
-    const doneTimer = setTimeout(() => setPhase("done"), 4200);
+    const holdTimer = setTimeout(() => setPhase("hold"), 900);
+    const exitTimer = setTimeout(() => setPhase("exit"), 2800);
+    const doneTimer = setTimeout(() => setPhase("done"), 3300);
 
     return () => {
       clearTimeout(holdTimer);
@@ -23,25 +25,25 @@ export default function SplashScreen() {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
+      className="fixed inset-0 z-[9999] bg-white flex items-center justify-center"
       style={{
         opacity: phase === "exit" ? 0 : 1,
-        transition: phase === "exit" ? "opacity 0.7s ease-in-out" : undefined,
+        transition: phase === "exit" ? "opacity 0.5s ease-in-out" : undefined,
       }}
     >
       <div
+        className="w-2/3 max-w-[380px] px-8"
         style={{
-          transform: phase === "enter" ? "scale(0.85)" : "scale(1)",
           opacity: phase === "enter" ? 0 : 1,
-          transition: "transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease",
+          transition: "opacity 0.9s ease",
         }}
       >
         <Image
-          src="/splash-logo.jpg"
+          src="/splash-logo-white.png"
           alt="Africin"
-          width={420}
-          height={315}
-          className="object-contain"
+          width={2048}
+          height={1448}
+          className="object-contain w-full h-auto"
           priority
         />
       </div>

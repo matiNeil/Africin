@@ -26,8 +26,8 @@ export default async function Home() {
   // an empty state instead of crashing the page.
   if (heroItems.length === 0) {
     return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-zinc-500 text-sm">No titles available right now — check back soon.</p>
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-subtle text-sm">No titles available right now — check back soon.</p>
       </main>
     );
   }
@@ -42,7 +42,7 @@ export default async function Home() {
     .slice(0, 20);
 
   return (
-    <main className="min-h-screen bg-black">
+    <main className="min-h-screen bg-background">
       <HeroCarousel items={heroItems} />
 
       {/* Content rows */}
@@ -65,13 +65,13 @@ export default async function Home() {
           <section className="py-4 sm:py-5">
             <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
               <div className="flex items-center gap-3 mb-3">
-                <h2 className="font-display font-bold text-lg sm:text-2xl text-white tracking-tight">
+                <h2 className="font-display font-bold text-lg sm:text-2xl text-foreground tracking-tight">
                   Live &amp; Events
                 </h2>
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                 <Link
                   href="/live"
-                  className="ml-auto text-zinc-400 hover:text-red-500 text-[11px] font-medium uppercase tracking-widest transition-colors"
+                  className="ml-auto text-muted hover:text-red-500 text-[11px] font-medium uppercase tracking-widest transition-colors"
                 >
                   Explore all
                 </Link>
@@ -91,21 +91,21 @@ export default async function Home() {
       {/* Get the app */}
       <section id="get-app" className="relative z-10 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl border border-red-500/15 bg-gradient-to-br from-red-950/30 via-zinc-950/60 to-black p-8 sm:p-10">
+          <div className="relative overflow-hidden rounded-3xl border border-red-500/15 bg-gradient-to-br from-red-950/10 dark:from-red-950/30 via-surface to-background p-8 sm:p-10">
             <div className="grid md:grid-cols-[1fr_auto] gap-8 items-center">
               <div>
                 <span className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase">
                   The Africin App
                 </span>
-                <h2 className="font-display font-bold text-2xl sm:text-3xl text-white leading-tight mt-2 mb-3">
+                <h2 className="font-display font-bold text-2xl sm:text-3xl text-foreground leading-tight mt-2 mb-3">
                   Browse here. Watch on the app.
                 </h2>
-                <p className="text-zinc-400 leading-relaxed mb-6 max-w-md">
+                <p className="text-muted leading-relaxed mb-6 max-w-md">
                   Streaming, live premieres, and offline downloads all live in the Africin mobile app. Download it to watch African cinema anywhere.
                 </p>
                 <AppDownload />
               </div>
-              <div className="hidden md:block relative w-44 aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50">
+              <div className="hidden md:block relative w-44 aspect-[3/4] rounded-2xl overflow-hidden border border-hairline shadow-2xl shadow-black/20 dark:shadow-black/50">
                 <Image src="/sizolobola-poster.jpg" alt="Africin app" fill className="object-cover" sizes="176px" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
               </div>
@@ -115,15 +115,15 @@ export default async function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <footer className="border-t border-hairline py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center">
-            <Image src="/logo.png" alt="Africin" width={120} height={20} className="object-contain h-5 w-auto opacity-60" />
+          <div className="flex items-center bg-black rounded-md px-2 py-1">
+            <Image src="/logo.png" alt="Africin" width={120} height={20} className="object-contain h-5 w-auto opacity-80" />
           </div>
-          <p className="text-zinc-700 text-xs tracking-widest uppercase">
+          <p className="text-subtle text-xs tracking-widest uppercase">
             &copy; {new Date().getFullYear()} &nbsp;&middot;&nbsp; Stream &nbsp;&middot;&nbsp; Watch &nbsp;&middot;&nbsp; Africa
           </p>
-          <div className="flex gap-6 text-zinc-600 text-xs tracking-widest uppercase">
+          <div className="flex gap-6 text-subtle text-xs tracking-widest uppercase">
             <Link href="/privacy" className="hover:text-red-500 transition-colors">Privacy</Link>
             <Link href="/support" className="hover:text-red-500 transition-colors">Support</Link>
             <Link href="/live" className="hover:text-red-500 transition-colors">Live</Link>

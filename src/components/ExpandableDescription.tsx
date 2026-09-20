@@ -9,7 +9,7 @@ export default function ExpandableDescription({ text }: { text: string }) {
     <div className="mb-6">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-zinc-500 hover:text-zinc-300 text-xs uppercase tracking-widest transition-colors"
+        className="flex items-center gap-2 text-subtle hover:text-muted text-xs uppercase tracking-widest transition-colors"
       >
         <span>{open ? "Hide" : "About this event"}</span>
         <svg
@@ -20,7 +20,7 @@ export default function ExpandableDescription({ text }: { text: string }) {
         </svg>
       </button>
       {open && (
-        <p className="text-zinc-500 text-sm leading-relaxed mt-3 border-l border-red-500/30 pl-3">
+        <p className="text-subtle text-sm leading-relaxed mt-3 border-l border-red-500/30 pl-3">
           {text}
         </p>
       )}

@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import SplashScreen from "@/components/SplashScreen";
+import ThemeProvider from "@/components/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({
@@ -24,11 +25,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${playfair.variable} font-sans bg-black text-white antialiased min-h-screen`}>
-        <SplashScreen />
-        <Navbar />
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} ${playfair.variable} font-sans bg-background text-foreground antialiased min-h-screen`}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <SplashScreen />
+          <Navbar />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

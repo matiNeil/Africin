@@ -5,6 +5,10 @@ import { useEffect, useState } from "react";
 interface CountdownTimerProps {
   targetDate: string;
   className?: string;
+  /** "onDark" (default) is white digits for use over video/image scrims that
+      are always dark regardless of site theme. "theme" follows light/dark
+      mode for placements directly on the page background. */
+  variant?: "onDark" | "theme";
 }
 
 interface TimeLeft {
@@ -25,7 +29,7 @@ function getTimeLeft(targetDate: string): TimeLeft | null {
   };
 }
 
-export default function CountdownTimer({ targetDate, className = "" }: CountdownTimerProps) {
+export default function CountdownTimer({ targetDate, className = "", variant = "onDark" }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
 
   useEffect(() => {
@@ -49,28 +53,28 @@ export default function CountdownTimer({ targetDate, className = "" }: Countdown
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {timeLeft.days > 0 && (
-        <Unit value={timeLeft.days} label="d" />
+        <Unit value={timeLeft.days} label="d" variant={variant} />
       )}
-      <Unit value={timeLeft.hours} label="h" />
-      <Sep />
-      <Unit value={timeLeft.minutes} label="m" />
-      <Sep />
-      <Unit value={timeLeft.seconds} label="s" />
+      <Unit value={timeLeft.hours} label="h" variant={variant} />
+      <Sep variant={variant} />
+      <Unit value={timeLeft.minutes} label="m" variant={variant} />
+      <Sep variant={variant} />
+      <Unit value={timeLeft.seconds} label="s" variant={variant} />
     </div>
   );
 }
 
-function Unit({ value, label }: { value: number; label: string }) {
+function Unit({ value, label, variant }: { value: number; label: string; variant: "onDark" | "theme" }) {
   return (
     <div className="flex items-baseline gap-0.5">
-      <span className="font-mono font-bold text-white tabular-nums">
+      <span className={`font-mono font-bold tabular-nums ${variant === "onDark" ? "text-white" : "text-foreground"}`}>
         {String(value).padStart(2, "0")}
       </span>
-      <span className="text-gray-400 text-xs">{label}</span>
+      <span className={`text-xs ${variant === "onDark" ? "text-gray-400" : "text-subtle"}`}>{label}</span>
     </div>
   );
 }
 
-function Sep() {
-  return <span className="text-gray-500 font-bold">:</span>;
+function Sep({ variant }: { variant: "onDark" | "theme" }) {
+  return <span className={`font-bold ${variant === "onDark" ? "text-gray-500" : "text-subtle"}`}>:</span>;
 }

@@ -10,20 +10,20 @@ const SUPPORT_EMAIL = "support@africin.tv";
 
 export default function DeleteAccountPage() {
   return (
-    <main className="min-h-screen bg-black pt-24 pb-20">
+    <main className="min-h-screen bg-background pt-24 pb-20">
       <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
         <header className="mb-10">
           <span className="text-red-500/80 text-[10px] font-medium tracking-[0.25em] uppercase">Account</span>
-          <h1 className="font-display font-bold text-3xl sm:text-4xl text-white tracking-tight mt-2">
+          <h1 className="font-display font-bold text-3xl sm:text-4xl text-foreground tracking-tight mt-2">
             Delete Your Africin Account
           </h1>
           <div className="h-px w-12 bg-gradient-to-r from-red-500 to-transparent mt-3 mb-4" />
         </header>
 
         {/* Body */}
-        <div className="space-y-9 text-zinc-400 text-sm leading-relaxed">
+        <div className="space-y-9 text-muted text-sm leading-relaxed">
           <section>
             <p>
               Africin users can delete their account and associated personal data directly from the Africin mobile
@@ -32,20 +32,20 @@ export default function DeleteAccountPage() {
           </section>
 
           <section>
-            <h2 className="font-display font-semibold text-xl text-white mb-3">To delete your account:</h2>
+            <h2 className="font-display font-semibold text-xl text-foreground mb-3">To delete your account:</h2>
             <ol className="space-y-2 list-decimal pl-5 marker:text-red-500/60">
               <li>Open the Africin app.</li>
               <li>Sign in to your account.</li>
-              <li>Go to the <span className="text-zinc-300 font-medium">Account</span> tab.</li>
+              <li>Go to the <span className="text-foreground/90 font-medium">Account</span> tab.</li>
               <li>
-                Scroll down and select <span className="text-zinc-300 font-medium">Delete Account</span>.
+                Scroll down and select <span className="text-foreground/90 font-medium">Delete Account</span>.
               </li>
               <li>Confirm your account deletion request, re-entering your password if prompted.</li>
             </ol>
           </section>
 
           <section>
-            <h2 className="font-display font-semibold text-xl text-white mb-3">What gets deleted</h2>
+            <h2 className="font-display font-semibold text-xl text-foreground mb-3">What gets deleted</h2>
             <p>
               Once confirmed, your Africin account and associated personal data are permanently deleted. This
               includes your profile information, saved watchlist, and downloads on your device. This action cannot
@@ -54,7 +54,7 @@ export default function DeleteAccountPage() {
           </section>
 
           <section>
-            <h2 className="font-display font-semibold text-xl text-white mb-3">What we retain</h2>
+            <h2 className="font-display font-semibold text-xl text-foreground mb-3">What we retain</h2>
             <p>
               Some information may be retained where required for legal, security, fraud-prevention, payment, or
               regulatory purposes &mdash; for example, purchase and transaction records. Any retained information is
@@ -63,7 +63,7 @@ export default function DeleteAccountPage() {
           </section>
 
           <section>
-            <h2 className="font-display font-semibold text-xl text-white mb-3">Can&apos;t access the app?</h2>
+            <h2 className="font-display font-semibold text-xl text-foreground mb-3">Can&apos;t access the app?</h2>
             <p>
               If you cannot access the Africin app, you may request account deletion by contacting Africin Support
               at{" "}

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import SignInStatus from "@/components/SignInStatus";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -48,23 +49,26 @@ export default function Navbar() {
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-[#050505]/90 backdrop-blur-2xl border-b border-white/5 shadow-2xl shadow-black/40"
-          : "bg-gradient-to-b from-black/70 to-transparent"
+          ? "bg-background/90 backdrop-blur-2xl border-b border-hairline shadow-2xl shadow-black/10 dark:shadow-black/40"
+          : "bg-gradient-to-b from-background/80 to-transparent"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo */}
+          {/* Logo — kept on a permanent dark chip since the wordmark asset
+              bakes in a black backdrop and needs to read on light mode too */}
           <Link href="/" className="flex items-center group">
-            <Image
-              src="/logo.png"
-              alt="Africin"
-              width={200}
-              height={32}
-              className="object-contain h-8 w-auto [mix-blend-mode:screen]"
-              priority
-            />
+            <span className="flex items-center bg-black rounded-md px-2.5 py-1">
+              <Image
+                src="/logo.png"
+                alt="Africin"
+                width={200}
+                height={32}
+                className="object-contain h-6 w-auto"
+                priority
+              />
+            </span>
           </Link>
 
           {/* Desktop nav */}
@@ -76,7 +80,7 @@ export default function Navbar() {
                 className={`relative flex items-center gap-1.5 text-xs font-medium tracking-widest uppercase transition-all duration-300 ${
                   pathname === link.href
                     ? "text-red-500"
-                    : "text-zinc-400 hover:text-white"
+                    : "text-muted hover:text-foreground"
                 }`}
               >
                 {"live" in link && link.live && (
@@ -92,9 +96,11 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-4">
+            <ThemeToggle />
+
             <button
               onClick={() => setSearchOpen(!searchOpen)}
-              className="text-zinc-400 hover:text-red-500 transition-colors duration-300"
+              className="text-muted hover:text-red-500 transition-colors duration-300"
               aria-label="Search"
             >
               {searchOpen ? (
@@ -113,7 +119,7 @@ export default function Navbar() {
             </div>
 
             <button
-              className="md:hidden text-zinc-400 hover:text-white transition-colors"
+              className="md:hidden text-muted hover:text-foreground transition-colors"
               onClick={() => setMenuOpen(!menuOpen)}
               aria-label="Toggle menu"
             >
@@ -130,9 +136,9 @@ export default function Navbar() {
 
         {/* Search overlay */}
         {searchOpen && (
-          <div className="border-t border-white/5">
+          <div className="border-t border-hairline">
             <form onSubmit={handleSearch} className="flex items-center gap-3 px-4 py-3">
-              <svg className="w-4 h-4 text-zinc-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-subtle flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -141,7 +147,7 @@ export default function Navbar() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search films, events…"
-                className="flex-1 bg-transparent text-white placeholder-zinc-600 text-sm focus:outline-none"
+                className="flex-1 bg-transparent text-foreground placeholder-subtle text-sm focus:outline-none"
                 onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
               />
               {searchQuery && (
@@ -155,14 +161,14 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden bg-[#050505]/95 backdrop-blur-2xl border-t border-white/5 py-4 space-y-1">
+          <div className="md:hidden bg-background/95 backdrop-blur-2xl border-t border-hairline py-4 space-y-1">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium tracking-widest uppercase transition-colors ${
-                  pathname === link.href ? "text-red-500" : "text-zinc-400 hover:text-white"
+                  pathname === link.href ? "text-red-500" : "text-muted hover:text-foreground"
                 }`}
               >
                 {"live" in link && link.live && (

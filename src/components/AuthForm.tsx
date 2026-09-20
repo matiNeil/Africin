@@ -30,9 +30,15 @@ interface AuthFormProps {
   onSignedIn: (user: User) => void;
   onCancel?: () => void;
   title?: string;
+  /** "onDark" (default) keeps the form permanently dark — used when it's
+      embedded inside an always-dark panel (the purchase/watch spotlight
+      cards). "theme" follows site light/dark mode — used for the standalone
+      navbar sign-in dropdown. */
+  variant?: "onDark" | "theme";
 }
 
-export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps) {
+export default function AuthForm({ onSignedIn, onCancel, title, variant = "onDark" }: AuthFormProps) {
+  const onDark = variant === "onDark";
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -120,17 +126,19 @@ export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps)
   }
 
   return (
-    <div className="rounded-xl bg-zinc-900 border border-white/10 p-5">
-      <p className="text-white text-sm font-semibold mb-1">
+    <div className={`rounded-xl p-5 ${onDark ? "bg-zinc-900 border border-white/10" : "bg-surface border border-hairline"}`}>
+      <p className={`text-sm font-semibold mb-1 ${onDark ? "text-white" : "text-foreground"}`}>
         {title ?? (mode === "signin" ? "Sign in" : "Create your account")}
       </p>
 
-      <div className="flex gap-1 bg-black/40 border border-white/10 rounded-full p-1 mb-4">
+      <div className={`flex gap-1 rounded-full p-1 mb-4 ${onDark ? "bg-black/40 border border-white/10" : "bg-background border border-hairline"}`}>
         <button
           type="button"
           onClick={() => switchMode("signin")}
           className={`flex-1 text-xs font-medium py-1.5 rounded-full transition-colors ${
-            mode === "signin" ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"
+            mode === "signin"
+              ? onDark ? "bg-white/10 text-white" : "bg-surface-2 text-foreground"
+              : onDark ? "text-zinc-500 hover:text-zinc-300" : "text-subtle hover:text-muted"
           }`}
         >
           Sign In
@@ -139,7 +147,9 @@ export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps)
           type="button"
           onClick={() => switchMode("signup")}
           className={`flex-1 text-xs font-medium py-1.5 rounded-full transition-colors ${
-            mode === "signup" ? "bg-white/10 text-white" : "text-zinc-500 hover:text-zinc-300"
+            mode === "signup"
+              ? onDark ? "bg-white/10 text-white" : "bg-surface-2 text-foreground"
+              : onDark ? "text-zinc-500 hover:text-zinc-300" : "text-subtle hover:text-muted"
           }`}
         >
           Create Account
@@ -162,9 +172,9 @@ export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps)
       </button>
 
       <div className="flex items-center gap-3 mb-4">
-        <div className="h-px flex-1 bg-white/10" />
-        <span className="text-zinc-600 text-[10px] uppercase tracking-widest">or</span>
-        <div className="h-px flex-1 bg-white/10" />
+        <div className={`h-px flex-1 ${onDark ? "bg-white/10" : "bg-hairline"}`} />
+        <span className={`text-[10px] uppercase tracking-widest ${onDark ? "text-zinc-600" : "text-subtle"}`}>or</span>
+        <div className={`h-px flex-1 ${onDark ? "bg-white/10" : "bg-hairline"}`} />
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -174,7 +184,7 @@ export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps)
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 mb-3 focus:outline-none focus:border-red-500/40"
+          className={`w-full rounded-lg px-3 py-2.5 text-sm mb-3 focus:outline-none focus:border-red-500/40 ${onDark ? "bg-black/40 border border-white/10 text-white placeholder:text-zinc-600" : "bg-background border border-hairline text-foreground placeholder:text-subtle"}`}
         />
         <input
           type="password"
@@ -182,7 +192,7 @@ export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps)
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 mb-3 focus:outline-none focus:border-red-500/40"
+          className={`w-full rounded-lg px-3 py-2.5 text-sm mb-3 focus:outline-none focus:border-red-500/40 ${onDark ? "bg-black/40 border border-white/10 text-white placeholder:text-zinc-600" : "bg-background border border-hairline text-foreground placeholder:text-subtle"}`}
         />
         {mode === "signup" && (
           <input
@@ -191,7 +201,7 @@ export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps)
             placeholder="Confirm password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 mb-3 focus:outline-none focus:border-red-500/40"
+            className={`w-full rounded-lg px-3 py-2.5 text-sm mb-3 focus:outline-none focus:border-red-500/40 ${onDark ? "bg-black/40 border border-white/10 text-white placeholder:text-zinc-600" : "bg-background border border-hairline text-foreground placeholder:text-subtle"}`}
           />
         )}
 
@@ -200,7 +210,7 @@ export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps)
             type="button"
             onClick={handleForgotPassword}
             disabled={busy}
-            className="block text-zinc-500 hover:text-zinc-300 text-xs mb-3 transition-colors"
+            className={`block text-xs mb-3 transition-colors ${onDark ? "text-zinc-500 hover:text-zinc-300" : "text-subtle hover:text-muted"}`}
           >
             Forgot password?
           </button>
@@ -212,7 +222,7 @@ export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps)
         <button
           type="submit"
           disabled={busy}
-          className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-60 text-black text-sm font-semibold py-3 rounded-full transition-colors"
+          className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-semibold py-3 rounded-full transition-colors"
         >
           {busy ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
         </button>
@@ -222,7 +232,7 @@ export default function AuthForm({ onSignedIn, onCancel, title }: AuthFormProps)
         <button
           type="button"
           onClick={onCancel}
-          className="block w-full text-center text-zinc-600 hover:text-zinc-400 text-xs mt-4 transition-colors"
+          className={`block w-full text-center text-xs mt-4 transition-colors ${onDark ? "text-zinc-600 hover:text-zinc-400" : "text-subtle hover:text-muted"}`}
         >
           ← Back
         </button>
