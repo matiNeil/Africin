@@ -117,8 +117,8 @@ export default async function Home() {
       {/* Footer */}
       <footer className="border-t border-hairline py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center bg-black rounded-md px-2 py-1">
-            <Image src="/logo.png" alt="Africin" width={120} height={20} className="object-contain h-5 w-auto opacity-80" />
+          <div className="flex items-center">
+            <Image src="/logo-wordmark.png" alt="Africin" width={1672} height={241} className="object-contain h-5 w-auto opacity-80" />
           </div>
           <p className="text-subtle text-xs tracking-widest uppercase">
             &copy; {new Date().getFullYear()} &nbsp;&middot;&nbsp; Stream &nbsp;&middot;&nbsp; Watch &nbsp;&middot;&nbsp; Africa

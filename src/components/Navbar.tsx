@@ -56,19 +56,16 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo — kept on a permanent dark chip since the wordmark asset
-              bakes in a black backdrop and needs to read on light mode too */}
+          {/* Logo */}
           <Link href="/" className="flex items-center group">
-            <span className="flex items-center bg-black rounded-md px-2.5 py-1">
-              <Image
-                src="/logo.png"
-                alt="Africin"
-                width={200}
-                height={32}
-                className="object-contain h-6 w-auto"
-                priority
-              />
-            </span>
+            <Image
+              src="/logo-wordmark.png"
+              alt="Africin"
+              width={1672}
+              height={241}
+              className="object-contain h-7 w-auto"
+              priority
+            />
           </Link>
 
           {/* Desktop nav */}
