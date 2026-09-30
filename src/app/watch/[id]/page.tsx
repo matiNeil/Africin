@@ -4,9 +4,8 @@ import { notFound } from "next/navigation";
 import { CONTENT } from "@/lib/data";
 import { getAllContent } from "@/lib/content-repo";
 import CountdownTimer from "@/components/CountdownTimer";
-import AppDownload from "@/components/AppDownload";
 import HeroBackdrop from "@/components/HeroBackdrop";
-import MoviePurchaseCard from "@/components/MoviePurchaseCard";
+import SubscribeCard from "@/components/SubscribeCard";
 
 interface WatchPageProps {
   params: Promise<{ id: string }>;
@@ -58,9 +57,6 @@ export default async function WatchPage({ params }: WatchPageProps) {
               {content.premiere && (
                 <span className="bg-gradient-to-r from-red-500 to-red-700 text-black text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Premiere</span>
               )}
-              {content.ppv && (
-                <span className="bg-purple-600/80 text-white text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">Pay Per View</span>
-              )}
             </div>
 
             <h1 className="font-display font-bold text-2xl sm:text-3xl lg:text-4xl text-foreground leading-tight tracking-tight mb-1">{content.title}</h1>
@@ -91,18 +87,14 @@ export default async function WatchPage({ params }: WatchPageProps) {
 
             <p className="text-muted leading-relaxed mb-8 max-w-2xl">{content.description}</p>
 
-            {/* Buy on the web (payment only — playback always happens in the
-                app), or a plain app-download CTA for free titles */}
-            {(content.price ?? 0) > 0 ? (
-              <MoviePurchaseCard contentId={content.id} price={content.price!} currency={content.currency} />
-            ) : (
-              <div className="rounded-2xl border border-red-500/15 bg-gradient-to-br from-red-950/8 dark:from-red-950/20 to-surface p-6 max-w-xl">
-                <h2 className="font-display font-semibold text-lg text-foreground mb-1">Watch on the Africin app</h2>
-                <p className="text-muted text-sm mb-5">
-                  {content.title} is available in the Africin mobile app. Download the app to {isUpcoming ? "pre-order and watch the premiere" : "stream now"}.
-                </p>
-                <AppDownload />
-              </div>
+            {/* Subscribe on the web (payment only — playback always happens
+                in the app). Every plan unlocks the whole catalog, so this
+                shows regardless of which title brought the viewer here. */}
+            <SubscribeCard contentId={content.id} />
+            {isUpcoming && (
+              <p className="text-subtle text-xs mt-3 max-w-xl">
+                {content.title} premieres soon — subscribing now unlocks it the moment it airs, along with everything else in the catalog.
+              </p>
             )}
           </div>
 

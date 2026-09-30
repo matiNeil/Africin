@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { getAllLiveStreams } from "@/lib/live-repo";
 import { sendPurchaseConfirmation } from "@/lib/email";
+import { isSubscriptionTier } from "@/lib/subscription-tiers";
+import { writeSubscription, getSubscription, nextManualExpiry } from "@/lib/subscriptions";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Paynow } = require("paynow");
 
@@ -78,6 +80,23 @@ export async function POST(req: NextRequest) {
         paidAt,
         paynowReference,
       });
+
+      // Subscription checkout (see initiateSubscriptionCheckout in
+      // /api/payments/initiate): extend the user's access window rather than
+      // writing a per-title entitlement. Paynow has no recurring-billing
+      // concept, so this is always a fixed 30-day grant, never a real
+      // auto-renewal — see nextManualExpiry.
+      if (purchase.tier && isSubscriptionTier(purchase.tier)) {
+        const existing = await getSubscription(purchase.userId);
+        await writeSubscription(purchase.userId, {
+          tier: purchase.tier,
+          status: "active",
+          store: "paynow",
+          autoRenews: false,
+          expiresAt: nextManualExpiry(existing?.expiresAt ?? null),
+          lastEventSource: "paynow_webhook",
+        });
+      }
 
       // Send confirmation email (best-effort — never throws)
       if (purchase.userEmail) {

@@ -6,7 +6,8 @@ import type { User } from "firebase/auth";
 import AuthForm from "./AuthForm";
 import AppDownload from "./AppDownload";
 
-type Phase = "locked" | "auth" | "mobileInput" | "paying" | "innbucksResult" | "polling" | "unlocked";
+type Tier = "mobile" | "standard" | "premium";
+type Phase = "locked" | "methodPicker" | "auth" | "mobileInput" | "paying" | "innbucksResult" | "polling" | "unlocked";
 type PayMethod = "ecocash" | "onemoney" | "innbucks" | "card";
 
 interface InnbucksInfo {
@@ -16,11 +17,29 @@ interface InnbucksInfo {
   expires_at?: string;
 }
 
-interface MoviePurchaseCardProps {
-  contentId: string;
-  price: number;
-  currency?: string;
-}
+// Mirrors SUBSCRIPTION_TIERS in src/lib/subscription-tiers.ts and
+// lib/models/subscription.dart in the mobile app — every tier unlocks the
+// entire catalog; only device/quality/download/profile limits differ.
+const TIERS: { id: Tier; name: string; price: number; features: string[] }[] = [
+  {
+    id: "mobile",
+    name: "Mobile",
+    price: 2.99,
+    features: ["1 device", "Standard video quality", "Online streaming only, no downloads", "1 user profile"],
+  },
+  {
+    id: "standard",
+    name: "Standard",
+    price: 4.99,
+    features: ["2 devices", "HD video quality", "Downloads on 1 device", "2 user profiles"],
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    price: 7.99,
+    features: ["3 devices simultaneously", "Full HD and 4K where available", "Downloads on all 3 devices", "4 user profiles", "Priority access to new releases"],
+  },
+];
 
 const POLL_INTERVAL_MS = 4000;
 
@@ -29,9 +48,6 @@ const MOBILE_METHODS: { id: PayMethod; label: string }[] = [
   { id: "onemoney", label: "OneMoney" },
 ];
 
-// Small inline icon per method, each with its own brand-tinted chip —
-// distinguishes the four options at a glance instead of four identical
-// gray buttons.
 function PhoneIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,6 +69,13 @@ function CardIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
 
 const METHOD_STYLE: Record<
   PayMethod,
@@ -65,21 +88,10 @@ const METHOD_STYLE: Record<
 };
 
 function MethodButton({
-  id,
-  label,
-  sublabel,
-  processingLabel,
-  activeMethod,
-  paying,
-  onClick,
+  id, label, sublabel, processingLabel, activeMethod, paying, onClick,
 }: {
-  id: PayMethod;
-  label: string;
-  sublabel: string;
-  processingLabel?: string;
-  activeMethod: PayMethod | null;
-  paying: boolean;
-  onClick: () => void;
+  id: PayMethod; label: string; sublabel: string; processingLabel?: string;
+  activeMethod: PayMethod | null; paying: boolean; onClick: () => void;
 }) {
   const { icon: Icon, chip, ring } = METHOD_STYLE[id];
   const isProcessing = paying && activeMethod === id;
@@ -102,11 +114,15 @@ function MethodButton({
   );
 }
 
-// Buys a movie on the web (via the same Paynow flow used for live events),
-// but — unlike live streams — there's no in-browser player for movies, so
-// once unlocked this just points the viewer at the app to actually watch.
-export default function MoviePurchaseCard({ contentId, price, currency = "USD" }: MoviePurchaseCardProps) {
+// Subscribes the viewer to an all-access plan on the web (via the same
+// Paynow flow the app's Paynow path uses), but — unlike a native app — there
+// is no in-browser player for the catalog, so once unlocked this just points
+// the viewer at the app to actually watch. Paynow has no recurring-billing
+// capability, so this is a 30-day access window renewed manually, never a
+// real auto-renewal — see nextManualExpiry on the backend.
+export default function SubscribeCard({ contentId }: { contentId: string }) {
   const [phase, setPhase] = useState<Phase>("locked");
+  const [selectedTier, setSelectedTier] = useState<Tier | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [instructions, setInstructions] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<PayMethod | null>(null);
@@ -119,6 +135,7 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
   const tokenRef = useRef<string>("");
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollDeadlineRef = useRef<number>(0);
+  const appOpenAttemptedRef = useRef(false);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -127,13 +144,11 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
     }
   }, []);
 
-  const appOpenAttemptedRef = useRef(false);
-
   const refreshAccess = useCallback(async (): Promise<boolean> => {
     const res = await fetch("/api/access/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contentId, authToken: tokenRef.current }),
+      body: JSON.stringify({ authToken: tokenRef.current }),
     });
     const data = await res.json();
     if (data.access) {
@@ -167,7 +182,7 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
     }, POLL_INTERVAL_MS);
   }, [refreshAccess, stopPolling]);
 
-  const proceedToPay = useCallback(async (method: PayMethod, phoneNumber?: string) => {
+  const proceedToPay = useCallback(async (tier: Tier, method: PayMethod, phoneNumber?: string) => {
     setErrorMsg("");
     setSubmitting(true);
     setPhase("paying");
@@ -176,17 +191,18 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contentId,
+          tier,
           method,
           ...(phoneNumber ? { phone: phoneNumber } : {}),
           authToken: tokenRef.current,
+          returnPath: window.location.pathname,
         }),
       });
       const data = await res.json();
 
       if (!res.ok) {
         setErrorMsg(data.error || "Payment failed. Please try again.");
-        setPhase(method === "ecocash" || method === "onemoney" ? "mobileInput" : "locked");
+        setPhase(method === "ecocash" || method === "onemoney" ? "mobileInput" : "methodPicker");
         return;
       }
 
@@ -205,11 +221,11 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
       beginPolling(data.instructions || "Check your phone for the payment prompt.");
     } catch {
       setErrorMsg("Something went wrong. Please try again.");
-      setPhase(method === "ecocash" || method === "onemoney" ? "mobileInput" : "locked");
+      setPhase(method === "ecocash" || method === "onemoney" ? "mobileInput" : "methodPicker");
     } finally {
       setSubmitting(false);
     }
-  }, [contentId, beginPolling]);
+  }, [beginPolling]);
 
   // Fires on mount and whenever auth state changes anywhere on the page.
   useEffect(() => {
@@ -245,6 +261,12 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function handleTierClick(tier: Tier) {
+    setErrorMsg("");
+    setSelectedTier(tier);
+    setPhase("methodPicker");
+  }
+
   function handleMethodClick(method: PayMethod) {
     setErrorMsg("");
     setSelectedMethod(method);
@@ -256,7 +278,7 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
       setPhase("mobileInput");
       return;
     }
-    proceedToPay(method);
+    if (selectedTier) proceedToPay(selectedTier, method);
   }
 
   async function handleSignedIn(signedInUser: User) {
@@ -264,19 +286,19 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
     lastUidRef.current = signedInUser.uid;
     tokenRef.current = await signedInUser.getIdToken();
     const unlocked = await refreshAccess();
-    if (unlocked || !selectedMethod) return;
+    if (unlocked || !selectedMethod || !selectedTier) return;
 
     if (selectedMethod === "ecocash" || selectedMethod === "onemoney") {
       setPhase("mobileInput");
     } else {
-      await proceedToPay(selectedMethod);
+      await proceedToPay(selectedTier, selectedMethod);
     }
   }
 
   function handleMobileSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedMethod || !phone.trim()) return;
-    proceedToPay(selectedMethod, phone.trim());
+    if (!selectedMethod || !selectedTier || !phone.trim()) return;
+    proceedToPay(selectedTier, selectedMethod, phone.trim());
   }
 
   function cancelPolling() {
@@ -288,11 +310,11 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
   if (phase === "auth") {
     return (
       <AuthForm
-        title="Sign in to pay"
+        title="Sign in to subscribe"
         onSignedIn={handleSignedIn}
         onCancel={() => {
           setErrorMsg("");
-          setPhase("locked");
+          setPhase("methodPicker");
         }}
       />
     );
@@ -304,14 +326,12 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
         <div className="pointer-events-none absolute -top-24 -right-24 w-56 h-56 rounded-full bg-green-500/10 blur-3xl" />
         <div className="relative flex items-center gap-2 mb-2">
           <span className="w-7 h-7 rounded-full bg-green-500/15 text-green-400 flex items-center justify-center flex-shrink-0">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
+            <CheckIcon className="w-4 h-4" />
           </span>
-          <p className="text-green-400 text-sm font-semibold">You own this title</p>
+          <p className="text-green-400 text-sm font-semibold">You&apos;re subscribed</p>
         </div>
         <p className="relative text-zinc-400 text-sm leading-relaxed mb-5">
-          Open the Africin app and sign in with the same account to watch it.
+          Open the Africin app and sign in with the same account to watch anything in the catalog.
         </p>
         <a
           href={`africin:///watch/${contentId}?payment=success`}
@@ -385,6 +405,7 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
   if (phase === "mobileInput") {
     const label = MOBILE_METHODS.find((m) => m.id === selectedMethod)?.label ?? "mobile money";
     const { icon: Icon, chip } = METHOD_STYLE[selectedMethod ?? "ecocash"];
+    const tierInfo = TIERS.find((t) => t.id === selectedTier);
     return (
       <form
         onSubmit={handleMobileSubmit}
@@ -398,7 +419,7 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
           </span>
           <div>
             <p className="text-white text-sm font-semibold">Pay with {label}</p>
-            <p className="text-zinc-500 text-xs">${price.toFixed(2)} will be requested on this number</p>
+            <p className="text-zinc-500 text-xs">${tierInfo?.price.toFixed(2)} will be requested on this number</p>
           </div>
         </div>
 
@@ -435,11 +456,11 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           )}
-          {submitting ? "Sending…" : `Send payment prompt — $${price.toFixed(2)}`}
+          {submitting ? "Sending…" : `Send payment prompt — $${tierInfo?.price.toFixed(2)}`}
         </button>
         <button
           type="button"
-          onClick={() => setPhase("locked")}
+          onClick={() => setPhase("methodPicker")}
           className="relative w-full text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           Choose a different method
@@ -448,50 +469,96 @@ export default function MoviePurchaseCard({ contentId, price, currency = "USD" }
     );
   }
 
-  // locked / paying — visible to everyone, no sign-in required to see it
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-red-500/15 bg-gradient-to-br from-red-950/20 via-zinc-950/80 to-black shadow-xl shadow-black/40 p-6 max-w-xl">
-      <div className="pointer-events-none absolute -top-24 -right-24 w-56 h-56 rounded-full bg-red-500/10 blur-3xl" />
+  if (phase === "methodPicker") {
+    const tierInfo = TIERS.find((t) => t.id === selectedTier);
+    return (
+      <div className="relative overflow-hidden rounded-2xl border border-red-500/15 bg-gradient-to-br from-red-950/20 via-zinc-950/80 to-black shadow-xl shadow-black/40 p-6 max-w-xl">
+        <div className="pointer-events-none absolute -top-24 -right-24 w-56 h-56 rounded-full bg-red-500/10 blur-3xl" />
 
+        <div className="relative flex items-center justify-between mb-1">
+          <span className="text-zinc-400 text-[11px] font-medium uppercase tracking-widest">{tierInfo?.name} plan</span>
+          <span className="text-white font-bold text-2xl">${tierInfo?.price.toFixed(2)} <span className="text-zinc-500 text-sm font-medium">USD/mo</span></span>
+        </div>
+        <p className="relative text-zinc-500 text-xs leading-relaxed mb-5">
+          Once confirmed, open the Africin app and sign in with the same account to watch.
+        </p>
+
+        {errorMsg && <p className="relative text-red-400 text-xs mb-3">{errorMsg}</p>}
+
+        <div className="relative grid grid-cols-2 gap-2.5">
+          <MethodButton
+            id="ecocash" label="EcoCash" sublabel="Mobile money"
+            activeMethod={selectedMethod} paying={submitting}
+            onClick={() => handleMethodClick("ecocash")}
+          />
+          <MethodButton
+            id="onemoney" label="OneMoney" sublabel="Mobile money"
+            activeMethod={selectedMethod} paying={submitting}
+            onClick={() => handleMethodClick("onemoney")}
+          />
+          <MethodButton
+            id="innbucks" label="InnBucks" sublabel="QR / app"
+            activeMethod={selectedMethod} paying={submitting}
+            onClick={() => handleMethodClick("innbucks")}
+          />
+          <MethodButton
+            id="card" label="Visa / Mastercard" sublabel="Debit or credit" processingLabel="Processing…"
+            activeMethod={selectedMethod} paying={submitting}
+            onClick={() => handleMethodClick("card")}
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setPhase("locked")}
+          className="relative w-full text-xs text-zinc-500 hover:text-zinc-300 transition-colors mt-4"
+        >
+          ← Choose a different plan
+        </button>
+
+        <p className="relative flex items-center gap-1.5 mt-5 text-zinc-600 text-[10px] uppercase tracking-widest">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          Secured checkout by Paynow — a 30-day access window, renewed manually (Paynow has no auto-renewal)
+        </p>
+      </div>
+    );
+  }
+
+  // locked — visible to everyone, no sign-in required to see it
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-red-500/15 bg-gradient-to-br from-red-950/20 via-zinc-950/80 to-black shadow-xl shadow-black/40 p-6 max-w-2xl">
+      <div className="pointer-events-none absolute -top-24 -right-24 w-56 h-56 rounded-full bg-red-500/10 blur-3xl" />
       <div className="relative flex items-center justify-between mb-1">
-        <span className="text-zinc-400 text-[11px] font-medium uppercase tracking-widest">Buy on the web</span>
-        <span className="text-white font-bold text-2xl">${price.toFixed(2)} <span className="text-zinc-500 text-sm font-medium">{currency}</span></span>
+        <span className="text-zinc-400 text-[11px] font-medium uppercase tracking-widest">Choose your plan</span>
       </div>
       <p className="relative text-zinc-500 text-xs leading-relaxed mb-5">
-        Once confirmed, open the Africin app and sign in with the same account to watch.
+        Every plan unlocks the entire Africin catalog — movies, series, and live events.
       </p>
 
-      {errorMsg && <p className="relative text-red-400 text-xs mb-3">{errorMsg}</p>}
-
-      <div className="relative grid grid-cols-2 gap-2.5">
-        <MethodButton
-          id="ecocash" label="EcoCash" sublabel="Mobile money"
-          activeMethod={selectedMethod} paying={phase === "paying"}
-          onClick={() => handleMethodClick("ecocash")}
-        />
-        <MethodButton
-          id="onemoney" label="OneMoney" sublabel="Mobile money"
-          activeMethod={selectedMethod} paying={phase === "paying"}
-          onClick={() => handleMethodClick("onemoney")}
-        />
-        <MethodButton
-          id="innbucks" label="InnBucks" sublabel="QR / app"
-          activeMethod={selectedMethod} paying={phase === "paying"}
-          onClick={() => handleMethodClick("innbucks")}
-        />
-        <MethodButton
-          id="card" label="Visa / Mastercard" sublabel="Debit or credit" processingLabel="Processing…"
-          activeMethod={selectedMethod} paying={phase === "paying"}
-          onClick={() => handleMethodClick("card")}
-        />
+      <div className="relative grid sm:grid-cols-3 gap-3">
+        {TIERS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => handleTierClick(t.id)}
+            className="text-left bg-zinc-900/80 hover:bg-zinc-900 border border-white/10 hover:border-red-500/40 rounded-xl p-4 transition-all duration-200 hover:-translate-y-0.5"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-white text-sm font-bold">{t.name}</span>
+              <span className="text-red-400 text-sm font-bold">${t.price.toFixed(2)}/mo</span>
+            </div>
+            <ul className="space-y-1">
+              {t.features.map((f) => (
+                <li key={f} className="flex items-start gap-1.5 text-zinc-500 text-[11px] leading-snug">
+                  <CheckIcon className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </button>
+        ))}
       </div>
-
-      <p className="relative flex items-center gap-1.5 mt-5 text-zinc-600 text-[10px] uppercase tracking-widest">
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
-        Secured checkout by Paynow
-      </p>
     </div>
   );
 }

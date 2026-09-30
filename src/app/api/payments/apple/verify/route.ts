@@ -1,90 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import { adminDb, adminAuth } from "@/lib/firebase-admin";
-import {
-  SignedDataVerifier,
-  Environment,
-  JWSTransactionDecodedPayload,
-} from "@apple/app-store-server-library";
+import { adminAuth } from "@/lib/firebase-admin";
+import { verifyTransaction, BUNDLE_ID } from "@/lib/apple-server";
+import { JWSTransactionDecodedPayload } from "@apple/app-store-server-library";
+import { tierForAppleProductId } from "@/lib/subscription-tiers";
+import { writeSubscription, getSubscription } from "@/lib/subscriptions";
 
 export const maxDuration = 30;
-
-const BUNDLE_ID = "com.africin.africinMobile";
-// The app's numeric App Store Connect ID (App Information → Apple ID). Not
-// set yet — omitting it just skips that one cross-check; signature/bundle-ID
-// verification below still fully protects against forged receipts.
-const APPLE_APP_APPLE_ID = process.env.APPLE_APP_APPLE_ID
-  ? Number(process.env.APPLE_APP_APPLE_ID)
-  : undefined;
-
-const rootCertificate = fs.readFileSync(
-  path.join(process.cwd(), "src/lib/certs/AppleRootCA-G3.cer")
-);
-
-/**
- * Verifies a StoreKit 2 signed transaction against Apple's servers. There is
- * no way to know up front whether a given device is a TestFlight/sandbox
- * tester or a real App Store customer, so both environments are checked —
- * in parallel rather than Production-then-Sandbox, since sequential checks
- * double the network round-trip time and have pushed this route past its
- * timeout under review-environment network conditions even though a manual
- * test (same network as this server) comfortably finishes in time.
- */
-async function verifyTransaction(
-  signedTransaction: string
-): Promise<JWSTransactionDecodedPayload> {
-  const attempt = (environment: Environment) => {
-    // Online checks (OCSP revocation lookups against Apple's servers) add a
-    // network round trip per environment attempted and have caused this
-    // route to hang past its timeout. revocationDate is already checked
-    // against the decoded payload below, so this is skipped.
-    const verifier = new SignedDataVerifier(
-      [rootCertificate],
-      false,
-      environment,
-      BUNDLE_ID,
-      APPLE_APP_APPLE_ID
-    );
-    return verifier.verifyAndDecodeTransaction(signedTransaction);
-  };
-
-  try {
-    return await Promise.any([
-      attempt(Environment.PRODUCTION),
-      attempt(Environment.SANDBOX),
-    ]);
-  } catch (err) {
-    // Both rejected: Promise.any throws an AggregateError wrapping both
-    // underlying errors. Surface the first one — either is representative,
-    // and callers only log/relay a single message.
-    if (err instanceof AggregateError) throw err.errors[0];
-    throw err;
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { contentId, signedTransaction, authToken } = body;
+    const { signedTransaction, authToken } = body;
 
     if (!authToken) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     let userId: string;
-    let userEmail: string;
     try {
       const decoded = await adminAuth.verifyIdToken(authToken);
       userId = decoded.uid;
-      userEmail = decoded.email ?? `${decoded.uid}@africin.app`;
     } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    if (!contentId || !signedTransaction) {
+    if (!signedTransaction) {
       return NextResponse.json(
-        { error: "Missing contentId or signedTransaction" },
+        { error: "Missing signedTransaction" },
         { status: 400 }
       );
     }
@@ -109,66 +51,51 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (!payload.transactionId || !payload.productId) {
+    if (!payload.transactionId || !payload.productId || !payload.expiresDate) {
       return NextResponse.json(
-        { error: "Malformed transaction." },
+        { error: "Malformed transaction — not a subscription." },
         { status: 400 }
       );
     }
 
-    // Confirm the purchased product actually belongs to contentId — without
-    // this, a client could send a cheap title's contentId alongside a
-    // different (also genuine) receipt and get the wrong title unlocked.
-    let contentDoc = await adminDb.collection("content").doc(contentId).get();
-    if (!contentDoc.exists) {
-      contentDoc = await adminDb.collection("liveStreams").doc(contentId).get();
-    }
-    if (!contentDoc.exists) {
-      return NextResponse.json({ error: "Content not found" }, { status: 404 });
-    }
-    const contentData = contentDoc.data()!;
-    if (
-      !contentData.appleProductId ||
-      contentData.appleProductId !== payload.productId
-    ) {
+    // The tier comes from Apple's own signed productId, never from anything
+    // the client claims — a client could otherwise send a cheap tier's
+    // signed transaction and ask to be recorded as a different one.
+    const tier = tierForAppleProductId(payload.productId);
+    if (!tier) {
       return NextResponse.json(
-        { error: "This purchase does not match the requested title." },
+        { error: "Unrecognized subscription product." },
         { status: 400 }
       );
     }
 
     // Idempotency: StoreKit redelivers unfinished transactions (app relaunch,
-    // retried verification, etc.) — never double-write the same purchase for
-    // the same user. Scoped by userId too, not just the transaction id: a
-    // non-consumable is tied to the Apple ID, not the Firebase account, so
+    // retried verification, etc.) — re-verifying the same transaction for the
+    // same user is a harmless no-op write, but skip it outright when nothing
+    // would change. Scoped by userId too, not just the transaction id: a
+    // subscription is tied to the Apple ID, not the Firebase account, so
     // StoreKit redelivers the same transaction to a *different* Firebase user
     // signed in on that device (e.g. a shared sandbox tester, or a family
-    // member reusing an Apple ID). Without the userId scope, that second
-    // account's verify call would match this user's existing row and return
-    // early without ever writing its own purchase — leaving it stuck
-    // "confirming" forever despite holding a genuine, verified transaction.
-    const existing = await adminDb
-      .collection("purchases")
-      .where("reference", "==", payload.transactionId)
-      .where("userId", "==", userId)
-      .limit(1)
-      .get();
-    if (!existing.empty) {
+    // member reusing an Apple ID) — that second account must still get its
+    // own subscription doc written, not be short-circuited by this check.
+    const existingSub = await getSubscription(userId);
+    if (
+      existingSub?.originalTransactionId ===
+        (payload.originalTransactionId ?? payload.transactionId) &&
+      existingSub.expiresAt?.getTime() === payload.expiresDate
+    ) {
       return NextResponse.json({ success: true, alreadyRecorded: true });
     }
 
-    await adminDb.collection("purchases").add({
-      userId,
-      userEmail,
-      contentId,
-      contentTitle: contentData.title ?? "Africin Content",
-      amount: contentData.price ?? null,
-      currency: contentData.currency ?? "USD",
-      method: "apple_iap",
-      reference: payload.transactionId,
-      status: "paid",
-      createdAt: new Date().toISOString(),
-      paidAt: new Date().toISOString(),
+    await writeSubscription(userId, {
+      tier,
+      status: "active",
+      store: "apple",
+      productId: payload.productId,
+      originalTransactionId: payload.originalTransactionId ?? payload.transactionId,
+      autoRenews: true,
+      expiresAt: new Date(payload.expiresDate),
+      lastEventSource: "verify",
     });
 
     return NextResponse.json({ success: true });

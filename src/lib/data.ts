@@ -32,8 +32,6 @@ export interface LiveStream {
   viewers?: number;
   startTime: string;        // ISO date string
   endTime?: string;
-  price?: number;           // 0 = free, >0 = PPV live
-  currency?: string;
   host: string;
   country: string;
   genre: string[];

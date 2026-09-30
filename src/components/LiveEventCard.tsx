@@ -48,12 +48,6 @@ export default function LiveEventCard({ stream, size = "md" }: LiveEventCardProp
           </span>
         </div>
 
-        {stream.price != null && stream.price > 0 && (
-          <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500/30">
-            ${stream.price}
-          </div>
-        )}
-
         <div className="absolute bottom-0 left-0 right-0 p-3">
           <CountdownTimer targetDate={stream.startTime} className="text-[10px]" />
         </div>

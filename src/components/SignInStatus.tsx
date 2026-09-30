@@ -33,29 +33,29 @@ export default function SignInStatus() {
     setRestoreMsg("");
     try {
       const token = await user.getIdToken();
-      const res = await fetch("/api/purchases/list", {
+      const res = await fetch("/api/subscriptions/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ authToken: token }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setRestoreMsg(data.error || "Couldn't restore purchases.");
+        setRestoreMsg(data.error || "Couldn't refresh your subscription.");
         return;
       }
       setRestoreMsg(
-        data.unlockedCount > 0
-          ? `Restored ${data.unlockedCount} purchase${data.unlockedCount === 1 ? "" : "s"} — reloading…`
-          : "No purchases found for this account."
+        data.active
+          ? `You're on the ${data.tier} plan — reloading…`
+          : "No active subscription found for this account."
       );
-      if (data.unlockedCount > 0) {
+      if (data.active) {
         // Simplest way to make every entitlement-gated component on the
-        // current page (e.g. the live stream player) pick up the restored
+        // current page (e.g. the live stream player) pick up the refreshed
         // access without wiring a cross-component refresh event.
         setTimeout(() => window.location.reload(), 1200);
       }
     } catch {
-      setRestoreMsg("Couldn't restore purchases. Please try again.");
+      setRestoreMsg("Couldn't refresh your subscription. Please try again.");
     } finally {
       setRestoring(false);
     }
@@ -84,7 +84,7 @@ export default function SignInStatus() {
               disabled={restoring}
               className="w-full text-left px-3 py-2 rounded-lg text-muted hover:bg-hairline text-xs disabled:opacity-60 transition-colors"
             >
-              {restoring ? "Restoring…" : "Restore Purchases"}
+              {restoring ? "Refreshing…" : "Refresh Subscription"}
             </button>
             {restoreMsg && <p className="px-3 py-1 text-[11px] text-subtle">{restoreMsg}</p>}
             <button

@@ -35,8 +35,6 @@ function mapLiveStreamDoc(id: string, data: DocumentData): LiveStream {
     isLive: data.isLive === true,
     startTime: toISODate(data.startTime) ?? new Date().toISOString(),
     endTime: toISODate(data.endTime),
-    price: typeof data.price === "number" && data.price > 0 ? data.price : undefined,
-    currency: typeof data.currency === "string" ? data.currency : undefined,
     host: typeof data.host === "string" ? data.host : "",
     country: typeof data.country === "string" ? data.country : "",
     genre: Array.isArray(data.genre) ? data.genre.filter((g): g is string => typeof g === "string" && g.length > 0) : [],
