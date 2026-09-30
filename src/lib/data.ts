@@ -12,12 +12,8 @@ export interface Content {
   type: "movie" | "series";
   episodes?: number;
   videoUrl?: string;        // trailer clip (Cloudflare Stream URL) — autoplays muted as the watch-page hero background
-  // Monetisation
-  price?: number;           // price in USD (0 = free)
-  currency?: string;        // "USD" | "ZAR" | "NGN" | "KES" | "GHS"
   premiere?: boolean;       // highlighted as a premiere release
   premiereDate?: string;    // ISO date string — future = upcoming, past = available now
-  ppv?: boolean;            // pay-per-view even after premiere window
   featured?: boolean;       // pins this title as the homepage hero, ahead of the premiere/first-item fallback
   createdAt?: string;       // ISO date string — when added to the catalog, powers "New Arrivals"
 }

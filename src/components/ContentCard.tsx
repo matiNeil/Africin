@@ -56,23 +56,12 @@ export default function ContentCard({ content, size = "md", fluid = false }: Con
               Premiere
             </span>
           )}
-          {content.ppv && !content.premiere && (
-            <span className="bg-white/15 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border border-white/15">
-              PPV
-            </span>
-          )}
-          {content.type === "series" && !content.premiere && !content.ppv && (
+          {content.type === "series" && !content.premiere && (
             <span className="bg-white/10 backdrop-blur-sm text-gray-200 text-[9px] font-medium px-2 py-0.5 rounded uppercase tracking-wider border border-white/10">
               Series
             </span>
           )}
         </div>
-
-        {content.price != null && content.price > 0 && (
-          <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500/30">
-            ${content.price}
-          </div>
-        )}
 
         <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
           <div className="flex items-center gap-1.5 text-[10px]">

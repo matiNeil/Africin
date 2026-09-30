@@ -40,8 +40,6 @@ function mapContentDoc(id: string, data: DocumentData): Content {
     country: typeof data.country === "string" ? data.country : "",
     type: data.type === "series" ? "series" : "movie",
     episodes: Array.isArray(data.episodes) ? data.episodes.length : undefined,
-    price: typeof data.price === "number" && data.price > 0 ? data.price : undefined,
-    currency: typeof data.currency === "string" ? data.currency : undefined,
     premiere: data.premiere === true,
     premiereDate: toISODate(data.premiereDate),
     featured: data.featured === true,
