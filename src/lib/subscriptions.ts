@@ -51,6 +51,24 @@ export async function writeSubscription(
       },
       { merge: true }
     );
+
+  // Every write path (initial purchase, Apple ASN v2, Google RTDN, Paynow
+  // renewal, legacy migration, expiry sweep) funnels through here, so this
+  // is the single place to log an append-only history of what happened and
+  // when — the admin panel's subscriber view has no other way to answer
+  // "did last month's renewal for this user actually go through", since
+  // writeSubscription above only ever keeps the current state.
+  await adminDb.collection("subscriptionEvents").add({
+    userId,
+    tier: data.tier,
+    status: data.status,
+    store: data.store,
+    productId: data.productId ?? null,
+    autoRenews: data.autoRenews,
+    expiresAt: data.expiresAt.toISOString(),
+    eventSource: data.lastEventSource,
+    createdAt: now,
+  });
 }
 
 /**

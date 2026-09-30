@@ -1,6 +1,9 @@
 // One-time migration: grant every user who ever completed a per-title
-// purchase (the old pay-per-movie model) a 1-month Premium all-access
-// subscription — regardless of which title(s) or how many they bought.
+// *movie/series* purchase (the old pay-per-movie model) a 1-month Premium
+// all-access subscription — regardless of which title(s) or how many they
+// bought. Live-event purchases (e.g. concerts like Macheso) do NOT qualify —
+// only a completed movie/series purchase does. A purchase only counts if its
+// status is "paid"; pending/failed purchases get nothing.
 //
 // Idempotent: safe to re-run. A user is skipped if they already have a
 // `subscriptions/{uid}` doc, whether that's an earlier run of this same
@@ -75,8 +78,20 @@ const purchasesSnap = await db
   .where("status", "==", "paid")
   .get();
 
-const userIds = new Set(purchasesSnap.docs.map((d) => d.data().userId).filter(Boolean));
-console.log(`Distinct paying users found: ${userIds.size}\n`);
+// Live-event purchases don't qualify for the movie-buyer grandfather grant.
+// Checking inclusion in `content` (movies/series) rather than exclusion from
+// `liveStreams` is deliberate: some past live events (e.g. Cheso Power
+// Festival / Macheso) have since had their liveStreams doc deleted, so they
+// can no longer be matched by id against that collection — but a real movie
+// purchase's contentId always still resolves in `content`.
+const contentIds = new Set((await db.collection("content").get()).docs.map((d) => d.id));
+
+const moviePurchases = purchasesSnap.docs.filter((d) => contentIds.has(d.data().contentId));
+const excludedNonMoviePurchases = purchasesSnap.size - moviePurchases.length;
+
+const userIds = new Set(moviePurchases.map((d) => d.data().userId).filter(Boolean));
+console.log(`Paid purchases found: ${purchasesSnap.size} (${excludedNonMoviePurchases} were live-event/other, excluded)`);
+console.log(`Distinct movie/series-paying users found: ${userIds.size}\n`);
 
 let migrated = 0;
 let skippedAlreadyLegacy = 0;
