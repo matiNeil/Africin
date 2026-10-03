@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
+import { isSubscriptionTier } from "@/lib/subscription-tiers";
+import { writeSubscription, getSubscription, nextManualExpiry } from "@/lib/subscriptions";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Paynow } = require("paynow");
 
@@ -56,6 +58,24 @@ export async function POST(req: NextRequest) {
         status: "paid",
         paidAt: new Date().toISOString(),
       });
+
+      // Same subscription grant as the Paynow result webhook (see
+      // /api/payments/result) — this client-side poller is a fallback for
+      // when that webhook is delayed or missed, so it must extend
+      // subscriptions/{userId} too or a confirmed payment never unlocks
+      // anything in the app.
+      if (purchase.tier && isSubscriptionTier(purchase.tier)) {
+        const existing = await getSubscription(purchase.userId);
+        await writeSubscription(purchase.userId, {
+          tier: purchase.tier,
+          status: "active",
+          store: "paynow",
+          autoRenews: false,
+          expiresAt: nextManualExpiry(existing?.expiresAt ?? null),
+          lastEventSource: "paynow_poll",
+        });
+      }
+
       return NextResponse.json({ status: "paid" });
     }
 

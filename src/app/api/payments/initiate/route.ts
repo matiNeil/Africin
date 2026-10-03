@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
 import { isSubscriptionTier, SUBSCRIPTION_TIERS } from "@/lib/subscription-tiers";
+import { writeSubscription, getSubscription, nextManualExpiry } from "@/lib/subscriptions";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { Paynow } = require("paynow");
 
@@ -108,6 +109,23 @@ async function initiateSubscriptionCheckout({
           polled && polled.status != null ? String(polled.status).toLowerCase() : "";
         if (polledStatus === "paid") {
           await recent.ref.update({ status: "paid", paidAt: new Date().toISOString() });
+
+          // Same subscription grant as the Paynow result webhook (see
+          // /api/payments/result) — this re-poll is a fallback for when that
+          // webhook is delayed or missed, so it must extend
+          // subscriptions/{userId} too or a confirmed payment never unlocks
+          // anything in the app.
+          if (data.tier && isSubscriptionTier(data.tier)) {
+            const existing = await getSubscription(userId);
+            await writeSubscription(userId, {
+              tier: data.tier,
+              status: "active",
+              store: "paynow",
+              autoRenews: false,
+              expiresAt: nextManualExpiry(existing?.expiresAt ?? null),
+              lastEventSource: "paynow_initiate_repoll",
+            });
+          }
         }
       } catch (pollErr) {
         console.error("Subscription initiate: pending re-poll failed:", pollErr);
