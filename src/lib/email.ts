@@ -124,3 +124,90 @@ export async function sendPurchaseConfirmation({
     console.error("Failed to send purchase confirmation email:", err);
   }
 }
+
+/**
+ * Sends the password reset link ourselves via Resend from the verified
+ * africin.tv domain, instead of Firebase Auth's built-in delivery (sent from
+ * a generic noreply@<project>.firebaseapp.com address with no SPF/DKIM for
+ * our domain — the actual cause of reset emails landing in spam). The link
+ * itself still comes from adminAuth.generatePasswordResetLink, so the reset
+ * flow and the page it lands on are unchanged.
+ */
+export async function sendPasswordReset({
+  to,
+  resetLink,
+}: {
+  to: string;
+  resetLink: string;
+}): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("RESEND_API_KEY not set — skipping password reset email");
+    return;
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset your Africin password</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+
+          <!-- Logo / header -->
+          <tr>
+            <td style="padding-bottom:32px;text-align:center;">
+              <span style="font-size:22px;font-weight:800;letter-spacing:0.1em;color:#ffffff;text-transform:uppercase;">AFRICIN</span>
+              <div style="width:32px;height:2px;background:#cc0000;margin:8px auto 0;"></div>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background:#141414;border:1px solid #222;border-radius:16px;padding:36px 32px;">
+              <h1 style="margin:0 0 12px;text-align:center;color:#ffffff;font-size:20px;font-weight:700;">Reset your password</h1>
+              <p style="margin:0 0 28px;text-align:center;color:#71717a;font-size:14px;">
+                We got a request to reset the password for this account. If this wasn't you, you can ignore this email.
+              </p>
+
+              <!-- CTA -->
+              <div style="text-align:center;">
+                <a href="${resetLink}" style="display:inline-block;background:#cc0000;color:#ffffff;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;padding:14px 32px;border-radius:100px;">
+                  Reset Password →
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding-top:24px;text-align:center;">
+              <p style="margin:0;color:#3f3f46;font-size:12px;">Africin — African Cinema Streaming</p>
+              <p style="margin:6px 0 0;color:#3f3f46;font-size:11px;">
+                Questions? Contact <a href="mailto:support@africin.tv" style="color:#71717a;text-decoration:none;">support@africin.tv</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
+  await resend.emails.send({
+    from: "Africin <noreply@africin.tv>",
+    to,
+    subject: "Reset your Africin password",
+    html,
+  });
+}
