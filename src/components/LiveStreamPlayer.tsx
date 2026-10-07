@@ -112,11 +112,30 @@ export default function LiveStreamPlayer({ embedUrl, startTime }: LiveStreamPlay
   const tokenRef = useRef<string>("");
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollDeadlineRef = useRef<number>(0);
+  const purchaseIdRef = useRef<string | null>(null);
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
+    }
+    purchaseIdRef.current = null;
+  }, []);
+
+  // EcoCash/OneMoney have no redirect back to us — the only way we learn the
+  // USSD prompt was approved is to ask Paynow ourselves. Without this, a
+  // purchase stays "pending" forever if Paynow's webhook is delayed/dropped
+  // (common for mobile-money IPNs), since nothing else ever re-polls it.
+  const pollPurchase = useCallback(async () => {
+    if (!purchaseIdRef.current) return;
+    try {
+      await fetch("/api/payments/poll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purchaseId: purchaseIdRef.current, authToken: tokenRef.current }),
+      });
+    } catch {
+      // best-effort — refreshAccess below just retries next tick
     }
   }, []);
 
@@ -135,12 +154,14 @@ export default function LiveStreamPlayer({ embedUrl, startTime }: LiveStreamPlay
     return false;
   }, [stopPolling]);
 
-  const beginPolling = useCallback((message: string) => {
+  const beginPolling = useCallback((message: string, purchaseId?: string) => {
     setPhase("polling");
     setInstructions(message);
     pollDeadlineRef.current = Date.now() + 5 * 60_000;
     stopPolling();
+    purchaseIdRef.current = purchaseId ?? null;
     pollTimerRef.current = setInterval(async () => {
+      await pollPurchase();
       const ok = await refreshAccess();
       if (!ok && Date.now() > pollDeadlineRef.current) {
         stopPolling();
@@ -148,7 +169,7 @@ export default function LiveStreamPlayer({ embedUrl, startTime }: LiveStreamPlay
         setErrorMsg("We didn't see a confirmed payment. If you completed it, try again.");
       }
     }, POLL_INTERVAL_MS);
-  }, [refreshAccess, stopPolling]);
+  }, [pollPurchase, refreshAccess, stopPolling]);
 
   const proceedToPay = useCallback(async (tier: Tier, method: PayMethod, phoneNumber?: string) => {
     setErrorMsg("");
@@ -185,7 +206,7 @@ export default function LiveStreamPlayer({ embedUrl, startTime }: LiveStreamPlay
         return;
       }
 
-      beginPolling(data.instructions || "Check your phone for the payment prompt.");
+      beginPolling(data.instructions || "Check your phone for the payment prompt.", data.purchaseId);
     } catch {
       setErrorMsg("Something went wrong. Please try again.");
       setPhase(method === "ecocash" || method === "onemoney" ? "mobileInput" : "methodPicker");

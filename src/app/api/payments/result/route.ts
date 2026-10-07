@@ -111,7 +111,15 @@ export async function POST(req: NextRequest) {
           paidAt,
         });
       }
-    } else if (finalStatus === "cancelled" || finalStatus === "failed") {
+    } else if (
+      (finalStatus === "cancelled" || finalStatus === "failed") &&
+      purchase.status !== "paid"
+    ) {
+      // Guard against a duplicate/retried Paynow callback for a reference
+      // that an earlier delivery already confirmed as paid — without this,
+      // a late "cancelled"/"failed" IPN retry overwrites status to "failed"
+      // while leaving the earlier paidAt untouched, silently denying a
+      // customer who actually paid.
       await doc.ref.update({ status: "failed" });
     }
 
