@@ -25,7 +25,11 @@ export async function POST(req: NextRequest) {
 
     let userId: string;
     try {
-      userId = (await adminAuth.verifyIdToken(authToken)).uid;
+      const identity = await adminAuth.verifyIdToken(authToken);
+      if (identity.tvDeviceId) {
+        return NextResponse.json({ error: "TV_PLAYBACK_API_REQUIRED" }, { status: 403 });
+      }
+      userId = identity.uid;
     } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }

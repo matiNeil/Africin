@@ -120,7 +120,8 @@ function MethodButton({
 // the viewer at the app to actually watch. Paynow has no recurring-billing
 // capability, so this is a 30-day access window renewed manually, never a
 // real auto-renewal — see nextManualExpiry on the backend.
-export default function SubscribeCard({ contentId }: { contentId: string }) {
+export default function SubscribeCard({ contentId, manageForTv = false }: { contentId: string; manageForTv?: boolean }) {
+  const [store, setStore] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("locked");
   const [selectedTier, setSelectedTier] = useState<Tier | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
@@ -170,21 +171,23 @@ export default function SubscribeCard({ contentId }: { contentId: string }) {
       body: JSON.stringify({ authToken: tokenRef.current }),
     });
     const data = await res.json();
-    if (data.access) {
+    if (!res.ok) throw new Error(data.error || "Could not check subscription");
+    setStore(data.store ?? null);
+    if (data.access && (!manageForTv || data.tier === "standard" || data.tier === "premium")) {
       stopPolling();
       setPhase("unlocked");
       // Best-effort hand-off back to the app (Android custom-scheme deep
       // link — see AndroidManifest's "africin" intent-filter). No-ops
       // silently if the app isn't installed or this isn't Android/a
       // browser that supports it; the "unlocked" UI below is the fallback.
-      if (!appOpenAttemptedRef.current) {
+      if (!manageForTv && !appOpenAttemptedRef.current) {
         appOpenAttemptedRef.current = true;
         window.location.href = `africin:///watch/${contentId}?payment=success`;
       }
       return true;
     }
     return false;
-  }, [contentId, stopPolling]);
+  }, [contentId, manageForTv, stopPolling]);
 
   const beginPolling = useCallback((message: string, purchaseId?: string) => {
     setPhase("polling");
@@ -339,6 +342,14 @@ export default function SubscribeCard({ contentId }: { contentId: string }) {
         }}
       />
     );
+  }
+
+  if (manageForTv && phase === "unlocked") {
+    return <div className="rounded-2xl border border-green-500/30 p-6"><h2 className="text-xl font-semibold">Your plan includes Smart TV</h2><p className="mt-3">Return to your television and select “Check my plan”. You do not need to activate it again.</p></div>;
+  }
+
+  if (manageForTv && (store === "apple" || store === "google") && phase === "locked") {
+    return <div className="rounded-2xl border border-white/20 p-6"><h2 className="text-xl font-semibold">Upgrade through {store === "apple" ? "Apple" : "Google Play"}</h2><p className="my-4">Choose Standard or Premium using the store that bills your existing subscription. Your TV will pick up the change when it takes effect.</p><a className="text-red-400 underline" href={store === "apple" ? "https://apps.apple.com/account/subscriptions" : "https://play.google.com/store/account/subscriptions?sku=africin_membership&package=com.africin.africin_mobile"}>Manage existing subscription</a><button className="block mt-4 text-red-400" onClick={async () => { try { tokenRef.current = await userRef.current!.getIdToken(); await refreshAccess(); } catch { setErrorMsg("Could not check your plan. Try again."); } }}>Check my plan</button><p role="alert">{errorMsg}</p></div>;
   }
 
   if (phase === "unlocked") {
@@ -559,7 +570,7 @@ export default function SubscribeCard({ contentId }: { contentId: string }) {
       </p>
 
       <div className="relative grid sm:grid-cols-3 gap-3">
-        {TIERS.map((t) => (
+        {TIERS.filter((t) => !manageForTv || t.id !== "mobile").map((t) => (
           <button
             key={t.id}
             onClick={() => handleTierClick(t.id)}
