@@ -17,6 +17,7 @@ export interface TierConfig {
   appleProductId: string;
   androidBasePlanId: string;
   maxDevices: number;
+  smartTvAccess: boolean;
   quality: "sd" | "hd" | "fhd";
   downloadDevices: number;
   maxProfiles: number;
@@ -30,6 +31,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
     appleProductId: "com.africin.sub.mobile",
     androidBasePlanId: "mobile-monthly",
     maxDevices: 1,
+    smartTvAccess: false,
     quality: "sd",
     downloadDevices: 0,
     maxProfiles: 1,
@@ -41,6 +43,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
     appleProductId: "com.africin.sub.standard",
     androidBasePlanId: "standard-monthly",
     maxDevices: 2,
+    smartTvAccess: true,
     quality: "hd",
     downloadDevices: 1,
     maxProfiles: 2,
@@ -52,6 +55,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
     appleProductId: "com.africin.sub.premium",
     androidBasePlanId: "premium-monthly",
     maxDevices: 3,
+    smartTvAccess: true,
     quality: "fhd",
     downloadDevices: 3,
     maxProfiles: 4,
