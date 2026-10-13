@@ -7,6 +7,11 @@ import { updateDeviceSession, releaseDeviceSession } from './device-sessions';
 import { catalogue, details, content, card, streamUid } from './tv-catalogue';
 import { signedManifest } from './tv-stream';
 
+function activationOrigin() {
+  const url = new URL(process.env.TV_ACTIVATION_BASE_URL ?? 'https://www.africin.tv');
+  if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new TvError('ACTIVATION_NOT_CONFIGURED', 503);
+  return url.origin;
+}
 function cors(req: Request): Record<string, string> {
   const origin = req.headers.get('origin');
   const allowed = (process.env.TV_ALLOWED_ORIGINS ?? 'http://127.0.0.1:5173,http://localhost:5173').split(',');
@@ -37,7 +42,7 @@ export async function handleTvRequest(req: Request, action: string): Promise<Res
       const name = typeof body.name === 'string' ? body.name.slice(0, 80) : 'Africin TV';
       const pairing = await createPairingCode({ protocol: 2, pollHash: hash(pollSecret), deviceId, name });
       return json(req, { ...pairing, pollSecret, pollIntervalMs: 4000,
-        activationUrl: `https://www.africin.tv/activate?code=${pairing.code}` });
+        activationUrl: `${activationOrigin()}/activate?code=${pairing.code}` });
     }
     if (action === 'pairing/poll') {
       if (typeof body.code !== 'string' || !/^[A-Z2-9]{6}$/.test(body.code) || typeof body.pollSecret !== 'string') throw new TvError('INVALID_PAIRING');
