@@ -48,6 +48,23 @@ export async function POST(req: NextRequest) {
 }
 
 /**
+ * Which Paynow flow a checkout uses, for deciding whether two pending
+ * checkouts are interchangeable.
+ *
+ * EcoCash/OneMoney/InnBucks go through `paynow.sendMobile` — a USSD/app prompt
+ * pushed to one specific number, with no redirectUrl — so each is only
+ * interchangeable with itself. Everything else (the app's "card", the
+ * website's unset/"web") goes through `paynow.send` and comes back as a
+ * redirect to Paynow's hosted page, so those share one bucket and keep the
+ * double-charge protection they have always had.
+ */
+function checkoutKind(method?: string): string {
+  return method === "ecocash" || method === "onemoney" || method === "innbucks"
+    ? method
+    : "redirect";
+}
+
+/**
  * Paynow checkout for an all-access subscription tier. Paynow has no
  * recurring-billing capability, so this buys a fixed 30-day access window —
  * see MANUAL_RENEWAL_PERIOD_DAYS and the result webhook, which extends
@@ -94,31 +111,35 @@ async function initiateSubscriptionCheckout({
     .where("status", "==", "pending")
     .get();
   if (!pendingSnap.empty) {
-    const recent = pendingSnap.docs.sort((a, b) => {
+    const pendingDocs = pendingSnap.docs.sort((a, b) => {
       const ta = Date.parse(a.data().createdAt ?? "") || 0;
       const tb = Date.parse(b.data().createdAt ?? "") || 0;
       return tb - ta;
-    })[0];
-    const data = recent.data();
-    const ageMs = Date.now() - (Date.parse(data.createdAt ?? "") || 0);
+    });
 
-    if (data.pollUrl) {
+    // Re-poll the most recent pending checkout whatever method it used: if it
+    // was actually paid, this grants the subscription even when the result
+    // webhook was delayed or missed. It only reads and grants, so it is safe
+    // to run across methods.
+    const mostRecent = pendingDocs[0];
+    const mostRecentData = mostRecent.data();
+    if (mostRecentData.pollUrl) {
       try {
-        const polled = await paynow.pollTransaction(data.pollUrl);
+        const polled = await paynow.pollTransaction(mostRecentData.pollUrl);
         const polledStatus =
           polled && polled.status != null ? String(polled.status).toLowerCase() : "";
         if (polledStatus === "paid") {
-          await recent.ref.update({ status: "paid", paidAt: new Date().toISOString() });
+          await mostRecent.ref.update({ status: "paid", paidAt: new Date().toISOString() });
 
           // Same subscription grant as the Paynow result webhook (see
           // /api/payments/result) — this re-poll is a fallback for when that
           // webhook is delayed or missed, so it must extend
           // subscriptions/{userId} too or a confirmed payment never unlocks
           // anything in the app.
-          if (data.tier && isSubscriptionTier(data.tier)) {
+          if (mostRecentData.tier && isSubscriptionTier(mostRecentData.tier)) {
             const existing = await getSubscription(userId);
             await writeSubscription(userId, {
-              tier: data.tier,
+              tier: mostRecentData.tier,
               status: "active",
               store: "paynow",
               autoRenews: false,
@@ -132,16 +153,32 @@ async function initiateSubscriptionCheckout({
       }
     }
 
-    if (ageMs < REUSE_WINDOW_MS && typeof data.redirectUrl === "string" && data.redirectUrl) {
-      return NextResponse.json({
-        success: true,
-        purchaseId: recent.id,
-        redirectUrl: data.redirectUrl,
-        pollUrl: data.pollUrl,
-        reused: true,
-      });
+    // Reuse and invalidation must stay within the same kind of checkout.
+    // Matching on tier alone meant a half-finished card checkout would be
+    // handed back — redirectUrl and all — to someone who had just picked
+    // EcoCash, returning here before paynow.sendMobile() below ever ran, so
+    // the USSD prompt was never sent and the app opened the Paynow page
+    // instead. Mobile-money rows carry no redirectUrl, so this only ever
+    // misfired after a card attempt.
+    const sameKind = pendingDocs.filter(
+      (doc) => checkoutKind(doc.data().method) === checkoutKind(method)
+    );
+    if (sameKind.length > 0) {
+      const recent = sameKind[0];
+      const data = recent.data();
+      const ageMs = Date.now() - (Date.parse(data.createdAt ?? "") || 0);
+
+      if (ageMs < REUSE_WINDOW_MS && typeof data.redirectUrl === "string" && data.redirectUrl) {
+        return NextResponse.json({
+          success: true,
+          purchaseId: recent.id,
+          redirectUrl: data.redirectUrl,
+          pollUrl: data.pollUrl,
+          reused: true,
+        });
+      }
+      await recent.ref.update({ status: "failed" });
     }
-    await recent.ref.update({ status: "failed" });
   }
 
   const price = SUBSCRIPTION_TIERS[tier].price;
