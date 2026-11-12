@@ -146,6 +146,25 @@ async function initiateSubscriptionCheckout({
               expiresAt: nextManualExpiry(existing?.expiresAt ?? null),
               lastEventSource: "paynow_initiate_repoll",
             });
+
+            // The earlier checkout had in fact been paid, and the line above
+            // just granted the access it bought. Falling through to create a
+            // second Paynow transaction would charge the customer again for
+            // what they already have.
+            //
+            // Reported as `instructions` because that is precisely how both
+            // clients already treat a checkout needing no redirect — show the
+            // message, then poll for the entitlement (see SubscribeCard's
+            // beginPolling and the app's _confirmEntitlement). Here the
+            // entitlement is already written, so that poll resolves at once.
+            return NextResponse.json({
+              success: true,
+              alreadyPaid: true,
+              purchaseId: mostRecent.id,
+              pollUrl: mostRecentData.pollUrl,
+              instructions:
+                "Your earlier payment has gone through — your subscription is active.",
+            });
           }
         }
       } catch (pollErr) {
