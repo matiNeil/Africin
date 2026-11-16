@@ -345,6 +345,13 @@ is a paginated landscape table in Helvetica.
 2. **Create the indexes**: `firebase deploy --only firestore:indexes` with the
    checked-in `firestore.indexes.json`. Until they exist, the dashboards'
    click counts degrade to zero and ledger queries fail.
+
+   `firebase.json` points only at `indexes`, and names no rules file on
+   purpose. The repository does not hold this project's security rules, so
+   giving the CLI a rules path would let a stray `firebase deploy --only
+   firestore` replace the live rules with whatever was checked in. Rules stay
+   managed where they already are; see step 4. `.firebaserc` pins the default
+   project to `africin`, so the command needs no `--project` flag.
 3. **Create the TTL policies** in the Firebase console on the `deleteAfter`
    field of `referralClicks` and `referralRateLimits`. The click TTL is what
    makes the system forget visitors who never signed up.
