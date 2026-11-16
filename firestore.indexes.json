@@ -14,11 +14,27 @@
     "that field's automatic single-field indexes (\"indexes\": []), which is",
     "what Firestore recommends for a pure TTL marker.",
     "",
-    "This file is additive: it does not describe indexes that other parts of",
-    "Africin may already rely on. Merge rather than replace if the project",
-    "later adopts a single checked-in index manifest."
+    "This file is the project's complete index manifest, not just the referral",
+    "system's. The pre-existing watchProgress index is listed first because",
+    "`firebase deploy --only firestore:indexes` treats the file as the full",
+    "desired state and offers to delete live indexes missing from it \u2014 an",
+    "omission here is a deletion prompt against a working query later."
   ],
   "indexes": [
+    {
+      "collectionGroup": "watchProgress",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
     {
       "collectionGroup": "referralBillingEvents",
       "queryScope": "COLLECTION",
