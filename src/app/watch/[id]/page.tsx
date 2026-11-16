@@ -6,6 +6,7 @@ import { getAllContent } from "@/lib/content-repo";
 import CountdownTimer from "@/components/CountdownTimer";
 import HeroBackdrop from "@/components/HeroBackdrop";
 import SubscribeCard from "@/components/SubscribeCard";
+import { isPremiereUpcoming } from "@/lib/premiere";
 
 interface WatchPageProps {
   params: Promise<{ id: string }>;
@@ -30,9 +31,7 @@ export default async function WatchPage({ params }: WatchPageProps) {
     (c) => c.id !== content.id && c.genre.some((g) => content.genre.includes(g))
   ).slice(0, 6);
 
-  const isUpcoming = content.premiereDate
-    ? new Date(content.premiereDate).getTime() > Date.now()
-    : false;
+  const isUpcoming = isPremiereUpcoming(content.premiereDate);
 
   return (
     <main className="min-h-screen bg-background pt-16">

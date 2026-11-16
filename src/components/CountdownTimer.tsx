@@ -32,13 +32,22 @@ function getTimeLeft(targetDate: string): TimeLeft | null {
 export default function CountdownTimer({ targetDate, className = "", variant = "onDark" }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(null);
 
+  // The clock is an external system, so this effect subscribes to it and
+  // updates state from the tick callback. `timeLeft` deliberately starts null
+  // rather than being seeded during render: the server has no business
+  // rendering a second-accurate countdown it would immediately hydrate out of
+  // sync with. The first tick runs straight away so the digits appear without
+  // waiting a second for them.
   useEffect(() => {
-    setTimeLeft(getTimeLeft(targetDate));
-    const interval = setInterval(() => {
-      const t = getTimeLeft(targetDate);
-      setTimeLeft(t);
-      if (!t) clearInterval(interval);
-    }, 1000);
+    const tick = () => {
+      const remaining = getTimeLeft(targetDate);
+      setTimeLeft(remaining);
+      // Nothing left to count: stop ticking rather than re-rendering
+      // "Available Now" once a second for as long as the page is open.
+      if (!remaining) clearInterval(interval);
+    };
+    const interval = setInterval(tick, 1000);
+    tick();
     return () => clearInterval(interval);
   }, [targetDate]);
 
@@ -47,8 +56,6 @@ export default function CountdownTimer({ targetDate, className = "", variant = "
       <span className={`text-red-500 font-semibold ${className}`}>Available Now</span>
     );
   }
-
-  const pad = (n: number) => String(n).padStart(2, "0");
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
