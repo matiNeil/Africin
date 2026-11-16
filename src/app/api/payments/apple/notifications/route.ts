@@ -86,6 +86,15 @@ export async function POST(req: NextRequest) {
       autoRenews: autoRenews ?? status === "active",
       expiresAt: new Date(transaction.expiresDate),
       lastEventSource: `asn_v2:${notificationType}`,
+      // Apple signs the renewal's price into the notification, so a renewal
+      // recorded here carries the amount actually charged.
+      ...(typeof transaction.price === "number" && transaction.currency
+        ? {
+            amountMinor: Math.round(transaction.price / 10),
+            currency: transaction.currency,
+            amountBasis: "store_reported" as const,
+          }
+        : {}),
     });
 
     return NextResponse.json({ ok: true });
