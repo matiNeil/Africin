@@ -352,9 +352,11 @@ is a paginated landscape table in Helvetica.
    firestore` replace the live rules with whatever was checked in. Rules stay
    managed where they already are; see step 4. `.firebaserc` pins the default
    project to `africin`, so the command needs no `--project` flag.
-3. **Create the TTL policies** in the Firebase console on the `deleteAfter`
-   field of `referralClicks` and `referralRateLimits`. The click TTL is what
-   makes the system forget visitors who never signed up.
+3. **TTL policies deploy with the indexes** — they are declared as
+   `fieldOverrides` in `firestore.indexes.json`, so step 2 creates them. The
+   click TTL is what makes the system forget visitors who never signed up, so
+   confirm both show as enabled under Firestore → TTL afterwards rather than
+   assuming.
 4. **Check the Firestore security rules.** Nothing in this feature is read
    from a browser's Firestore SDK — the dashboards go through the API, which
    uses the Admin SDK and bypasses rules. If the project's rules grant signed-in
