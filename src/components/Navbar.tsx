@@ -16,17 +16,23 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input when overlay opens
+  // Focus input when overlay opens. Clearing the query lives in closeSearch
+  // instead of an `else` branch here: resetting state in an effect means the
+  // overlay renders once with the stale query before the reset lands.
   useEffect(() => {
     if (searchOpen) searchInputRef.current?.focus();
-    else setSearchQuery("");
   }, [searchOpen]);
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery("");
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/browse?q=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchOpen(false);
+      closeSearch();
     }
   };
 
@@ -96,7 +102,7 @@ export default function Navbar() {
             <ThemeToggle />
 
             <button
-              onClick={() => setSearchOpen(!searchOpen)}
+              onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
               className="text-muted hover:text-red-500 transition-colors duration-300"
               aria-label="Search"
             >
@@ -145,7 +151,7 @@ export default function Navbar() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search films, events…"
                 className="flex-1 bg-transparent text-foreground placeholder-subtle text-sm focus:outline-none"
-                onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
+                onKeyDown={(e) => e.key === "Escape" && closeSearch()}
               />
               {searchQuery && (
                 <button type="submit" className="text-red-500 text-xs font-medium uppercase tracking-wider hover:text-red-400 transition-colors">

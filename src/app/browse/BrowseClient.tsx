@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Content } from "@/lib/data";
 import ContentCard from "@/components/ContentCard";
@@ -19,21 +19,28 @@ function parseType(value: string | null): "all" | "movie" | "series" {
 
 export default function BrowseClient({ items, genres, countries }: BrowseClientProps) {
   const searchParams = useSearchParams();
+  const urlSearch = searchParams.get("q") || "";
+  const urlType = parseType(searchParams.get("type"));
+
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [selectedCountry, setSelectedCountry] = useState("All");
-  const [selectedType, setSelectedType] = useState<"all" | "movie" | "series">(() =>
-    parseType(searchParams.get("type")),
-  );
-  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [selectedType, setSelectedType] = useState<"all" | "movie" | "series">(urlType);
+  const [search, setSearch] = useState(urlSearch);
 
-  // Sync search + type from the URL (e.g. the navbar's Movies/Series links
-  // are plain <Link>s to /browse?type=..., not something that unmounts this
-  // component if you're already on /browse, so state needs to react to
-  // param changes here rather than only reading them once on mount).
-  useEffect(() => {
-    setSearch(searchParams.get("q") || "");
-    setSelectedType(parseType(searchParams.get("type")));
-  }, [searchParams]);
+  // The navbar's Movies/Series links and its search box are plain navigations
+  // to /browse?..., which do not unmount this component when you are already
+  // on /browse. So the URL has to be able to move these two filters after
+  // mount, while the genre and country pickers stay purely local.
+  //
+  // Adjusting during render rather than in an effect is deliberate: React
+  // re-runs this render before committing anything, so the results never get
+  // painted once with the previous query's filters and then corrected.
+  const [urlFilters, setUrlFilters] = useState({ q: urlSearch, type: urlType });
+  if (urlFilters.q !== urlSearch || urlFilters.type !== urlType) {
+    setUrlFilters({ q: urlSearch, type: urlType });
+    setSearch(urlSearch);
+    setSelectedType(urlType);
+  }
 
   const filtered = useMemo(() => {
     return items.filter((item) => {
