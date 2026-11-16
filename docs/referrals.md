@@ -285,6 +285,28 @@ Metric definitions:
 
 ---
 
+### Bulk onboarding
+
+`scripts/bulk-create-influencers.mjs` creates many influencers and their first
+links from a CSV, calling the same `createInfluencer` / `createReferralCode`
+the dashboard calls. Code uniqueness, email uniqueness, landing-path sanitising
+and the audit trail are therefore identical whether a link is minted in the UI
+or here — a second implementation of "is this code free" is how two influencers
+end up sharing a link.
+
+```bash
+node scripts/bulk-create-influencers.mjs influencers.csv            # validates only
+node scripts/bulk-create-influencers.mjs influencers.csv --apply
+```
+
+Header row required; columns in any order. `name` and `email` are required,
+`commission` (percent), `code` (blank generates one), `landingpath` and `label`
+are optional. The whole file is validated before anything is written, so a
+duplicate email, an unusable or reserved code, or a landing path that is not a
+safe on-site path fails the run while it is still free to fix. Once writing
+starts each row stands alone: one rejected code does not cost you the other
+twenty. The finished links are printed as CSV to send out.
+
 ## 6. Reports and exports
 
 CSV, XLSX and PDF, filterable by date range and campaign, from both
