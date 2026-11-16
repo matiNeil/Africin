@@ -1,0 +1,79 @@
+{
+  "comment": [
+    "Composite indexes and TTL policies required by the referral system.",
+    "Firestore creates single-field indexes automatically, so only queries that",
+    "combine an equality filter with an ordering or range on a different field",
+    "appear here. Deploy with: firebase deploy --only firestore:indexes",
+    "",
+    "The fieldOverrides below declare the TTL policies, so they deploy with the",
+    "indexes rather than having to be clicked into the Firebase console. Click",
+    "rows are what make the system forget visitors who never created an",
+    "account, so a missing TTL here is a privacy regression, not a tidiness one.",
+    "",
+    "`deleteAfter` is written and never queried, so each override also drops",
+    "that field's automatic single-field indexes (\"indexes\": []), which is",
+    "what Firestore recommends for a pure TTL marker.",
+    "",
+    "This file is additive: it does not describe indexes that other parts of",
+    "Africin may already rely on. Merge rather than replace if the project",
+    "later adopts a single checked-in index manifest."
+  ],
+  "indexes": [
+    {
+      "collectionGroup": "referralBillingEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "influencerId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "referralBillingEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "occurredAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "referralClicks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "influencerId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "referralClicks",
+      "fieldPath": "deleteAfter",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "referralRateLimits",
+      "fieldPath": "deleteAfter",
+      "ttl": true,
+      "indexes": []
+    }
+  ]
+}

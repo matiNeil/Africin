@@ -1,6 +1,7 @@
 "use client";
 
 import { initializeApp, getApps, getApp } from "firebase/app";
+import { claimReferralAttributionInBackground } from "@/lib/referral-client";
 import {
   getAuth,
   onAuthStateChanged,
@@ -50,13 +51,23 @@ export async function requireRealUser(user: User | null): Promise<User | null> {
   return user;
 }
 
+/**
+ * Every successful authentication reports in for referral attribution. It
+ * runs on sign-in as well as sign-up because the first claim can be missed
+ * (offline, a failed request, an account created in the mobile app) and the
+ * server's decision is idempotent — an account that is already attributed is
+ * left exactly as it is, so a later sign-in can never move it to a different
+ * influencer. Fire-and-forget: it never delays or fails the sign-in.
+ */
 export async function signInWithEmail(email: string, password: string): Promise<User> {
   const cred = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+  claimReferralAttributionInBackground(cred.user);
   return cred.user;
 }
 
 export async function registerWithEmail(email: string, password: string): Promise<User> {
   const cred = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
+  claimReferralAttributionInBackground(cred.user);
   return cred.user;
 }
 
@@ -66,6 +77,7 @@ export function resetPassword(email: string) {
 
 export async function signInWithGoogle(): Promise<User> {
   const cred = await signInWithPopup(getFirebaseAuth(), new GoogleAuthProvider());
+  claimReferralAttributionInBackground(cred.user);
   return cred.user;
 }
 

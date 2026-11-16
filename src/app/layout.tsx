@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import SplashScreen from "@/components/SplashScreen";
 import ThemeProvider from "@/components/ThemeProvider";
+import ReferralCapture from "@/components/ReferralCapture";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${playfair.variable} font-sans bg-background text-foreground antialiased min-h-screen`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <ReferralCapture />
           <SplashScreen />
           <Navbar />
           {children}
