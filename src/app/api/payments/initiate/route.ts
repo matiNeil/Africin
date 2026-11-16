@@ -124,6 +124,12 @@ async function initiateSubscriptionCheckout({
               autoRenews: false,
               expiresAt: nextManualExpiry(existing?.expiresAt ?? null),
               lastEventSource: "paynow_initiate_repoll",
+              amountMinor: Math.round(Number(data.amount ?? 0) * 100),
+              currency: data.currency ?? "USD",
+              amountBasis: "charged",
+              // Same reference the result webhook would report, so whichever
+              // path confirms first, the payment is recorded exactly once.
+              paymentReference: data.reference ?? null,
             });
           }
         }

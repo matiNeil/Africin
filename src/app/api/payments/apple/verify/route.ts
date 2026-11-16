@@ -7,6 +7,21 @@ import { writeSubscription, getSubscription } from "@/lib/subscriptions";
 
 export const maxDuration = 30;
 
+/**
+ * Apple reports `price` in milliunits of `currency` (4990 = 4.99). Both
+ * fields are optional on older transactions; when either is missing the
+ * referral ledger falls back to the catalog price and flags the row for
+ * reconciliation.
+ */
+function appleAmount(payload: JWSTransactionDecodedPayload) {
+  if (typeof payload.price !== "number" || !payload.currency) return {};
+  return {
+    amountMinor: Math.round(payload.price / 10),
+    currency: payload.currency,
+    amountBasis: "store_reported" as const,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -96,6 +111,10 @@ export async function POST(req: NextRequest) {
       autoRenews: true,
       expiresAt: new Date(payload.expiresDate),
       lastEventSource: "verify",
+      // Apple signs the price into the transaction itself, so referral
+      // revenue for App Store subscribers is the real charged amount in the
+      // customer's own currency rather than our catalog price.
+      ...appleAmount(payload),
     });
 
     return NextResponse.json({ success: true });

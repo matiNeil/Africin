@@ -95,6 +95,13 @@ export async function POST(req: NextRequest) {
           autoRenews: false,
           expiresAt: nextManualExpiry(existing?.expiresAt ?? null),
           lastEventSource: "paynow_webhook",
+          // The exact amount invoiced, plus the Paynow reference — which is
+          // what makes this payment count once even though the webhook, the
+          // initiate re-poll and the refresh sweep can all confirm it.
+          amountMinor: Math.round(Number(purchase.amount ?? 0) * 100),
+          currency: purchase.currency ?? "USD",
+          amountBasis: "charged",
+          paymentReference: reference,
         });
       }
 

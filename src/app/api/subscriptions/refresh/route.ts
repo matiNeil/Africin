@@ -53,6 +53,10 @@ export async function POST(req: NextRequest) {
                 autoRenews: false,
                 expiresAt: nextManualExpiry(existing?.expiresAt ?? null),
                 lastEventSource: "subscriptions_refresh",
+                amountMinor: Math.round(Number(data.amount ?? 0) * 100),
+                currency: data.currency ?? "USD",
+                amountBasis: "charged",
+                paymentReference: data.reference ?? null,
               });
             }
           } else if (polledStatus === "cancelled" || polledStatus === "failed") {
