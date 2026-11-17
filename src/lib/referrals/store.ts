@@ -520,6 +520,11 @@ export async function billingEventExists(db: Firestore, eventId: string): Promis
   return doc.exists;
 }
 
+export async function getBillingEvent(db: Firestore, eventId: string): Promise<BillingEvent | null> {
+  const doc = await db.collection(COLLECTIONS.billingEvents).doc(eventId).get();
+  return doc.exists ? ({ eventId: doc.id, ...doc.data() } as BillingEvent) : null;
+}
+
 export const MAX_EVENT_SCAN = 20_000;
 
 export interface EventQuery {

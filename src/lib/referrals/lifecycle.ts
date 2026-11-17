@@ -164,6 +164,18 @@ export function classifyEventSource(eventSource: string): StoreSignal {
     }
   }
 
+  // A refund recorded deliberately by an admin. Paynow has no refund
+  // notification, so unlike Apple and Google this can never arrive from the
+  // gateway — it is only ever written through the admin refund endpoint.
+  //
+  // Checked before the `paynow` prefix below, and deliberately not named with
+  // that prefix in a way that the prefix test would swallow: a string like
+  // "paynow_refund" falling into the branch underneath would classify money
+  // going out as money coming in.
+  if (eventSource === GATEWAY_REFUND_SOURCE) {
+    return { ...NO_SIGNAL, refund: true };
+  }
+
   // Paynow: every confirmed checkout is a real payment for a fixed 30-day
   // window. All three server-side confirmation paths (result webhook, the
   // initiate re-poll, and the subscriptions refresh sweep) are equally
@@ -181,6 +193,14 @@ export function classifyEventSource(eventSource: string): StoreSignal {
   // Manual grants and the legacy-purchase migration are access, not revenue.
   return NO_SIGNAL;
 }
+
+/**
+ * The `lastEventSource` written on a deliberately recorded gateway refund.
+ * A constant rather than a literal so the classifier and the writer cannot
+ * drift apart — a typo on either side would silently stop clawing back
+ * commission.
+ */
+export const GATEWAY_REFUND_SOURCE = "gateway_refund";
 
 function shortHash(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 24);
@@ -242,6 +262,19 @@ export function registrationEventId(userId: string): string {
  */
 export function paymentEventId(key: string, referenceOrPeriod: string): string {
   return `pay_${shortHash([key, referenceOrPeriod].join("|"))}`;
+}
+
+/**
+ * Identity of "this specific payment was refunded".
+ *
+ * Keyed on the gateway's payment reference rather than the billing period,
+ * mirroring `paymentEventId`: it makes recording the same refund twice a
+ * no-op, and it keeps a refund tied to the payment it reverses rather than to
+ * whatever period the subscription happens to be in when someone gets round
+ * to recording it.
+ */
+export function gatewayRefundEventId(key: string, paymentReference: string): string {
+  return billingEventId("refund", [key, `refund:${paymentReference}`]);
 }
 
 /**

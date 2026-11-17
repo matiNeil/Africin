@@ -1,18 +1,25 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { decideAttribution } from "./attribution.ts";
 import {
+  GATEWAY_REFUND_SOURCE,
   deriveBillingEvents,
+  gatewayRefundEventId,
   isPaidForNewPeriod,
+  paymentEventId,
   registrationEventId,
+  subscriptionKey,
   type AttributionFacts,
   type BillingContext,
   type SubscriptionSnapshot,
 } from "./lifecycle.ts";
+import { commissionMinor } from "./money.ts";
 import {
   appendBillingEvents,
   claimFirstPaymentMarker,
   createAttributionIfAbsent,
   getAttribution,
+  getBillingEvent,
+  readSubscriptionStates,
   getCampaign,
   getClick,
   getInfluencer,
@@ -149,6 +156,115 @@ async function recordRegistrationEvent(
     externalRef: attribution.clickId,
   };
   await appendBillingEvents(db, [event]);
+}
+
+export interface GatewayRefundInput {
+  userId: string;
+  /** The gateway reference of the payment being reversed. */
+  paymentReference: string;
+  /** Positive minor units. Omit to reverse the payment in full. */
+  amountMinor?: number | null;
+  occurredAt?: string;
+  /** Who recorded it — carried into the ledger row for the audit trail. */
+  actorUid: string;
+}
+
+export type GatewayRefundResult =
+  | { ok: true; event: BillingEvent; alreadyRecorded: boolean }
+  | { ok: false; reason: "PAYMENT_NOT_FOUND" | "AMOUNT_EXCEEDS_PAYMENT" | "INVALID_AMOUNT"; paymentEventId?: string };
+
+/**
+ * Records a refund that the gateway cannot tell us about.
+ *
+ * Apple and Google push refunds and revocations, so those clawbacks derive
+ * themselves inside `writeSubscription`. Paynow has no refund notification at
+ * all, which left refunded Paynow subscriptions sitting in the ledger as
+ * positive revenue with the commission still payable. This is the deliberate
+ * path for recording one.
+ *
+ * It refunds *a payment*, not an account: the caller names the gateway
+ * reference, and this finds the ledger row that payment wrote. That has three
+ * consequences worth having —
+ *
+ *  - a typo'd reference is rejected rather than inventing negative revenue
+ *    against an account that never paid it,
+ *  - the refund cannot exceed what was actually collected, and
+ *  - recording the same refund twice collides on a deterministic id and
+ *    changes nothing, exactly like a redelivered store webhook.
+ *
+ * Deliberately does **not** touch `subscriptions/{userId}`. Whether a refunded
+ * customer keeps access until their period ends is a commercial decision, and
+ * silently revoking it as a side effect of bookkeeping would be the wrong
+ * default.
+ */
+export async function recordGatewayRefund(
+  db: Firestore,
+  input: GatewayRefundInput
+): Promise<GatewayRefundResult> {
+  // Deliberately no attribution read: the refund inherits the acquisition
+  // facts stamped on the payment it reverses, so a refund always lands on the
+  // same influencer's books as the money it takes back — even if the account's
+  // record was re-stamped by reconciliation in between.
+  const states = await readSubscriptionStates(db, [input.userId]);
+  const state = states[0] ?? null;
+
+  // Paynow has no subscription object of its own, so the key is the account
+  // plus store — the same derivation `writeSubscription` used when the
+  // payment row was written, which is what makes the lookup below line up.
+  const key = subscriptionKey(
+    {
+      tier: state?.tier ?? "none",
+      status: "expired",
+      store: state?.store ?? "paynow",
+      productId: null,
+      autoRenews: false,
+      expiresAt: null,
+      originalTransactionId: null,
+      purchaseToken: null,
+    },
+    input.userId
+  );
+
+  const paymentId = paymentEventId(key, input.paymentReference);
+  const payment = await getBillingEvent(db, paymentId);
+  if (!payment || payment.userId !== input.userId) {
+    return { ok: false, reason: "PAYMENT_NOT_FOUND", paymentEventId: paymentId };
+  }
+
+  const full = Math.abs(payment.amountMinor);
+  const requested = input.amountMinor == null ? full : Math.round(input.amountMinor);
+  if (!Number.isFinite(requested) || requested <= 0) return { ok: false, reason: "INVALID_AMOUNT" };
+  if (requested > full) return { ok: false, reason: "AMOUNT_EXCEEDS_PAYMENT" };
+
+  // Commission is clawed back at the rate the payment actually earned, not at
+  // today's rate: re-rating a months-old payment because the influencer has
+  // since renegotiated would take back money they never received.
+  const rateBps = payment.commissionRateBps;
+
+  const event: BillingEvent = {
+    eventId: gatewayRefundEventId(key, input.paymentReference),
+    kind: "refund",
+    userId: input.userId,
+    source: payment.source,
+    influencerId: payment.influencerId,
+    code: payment.code,
+    campaignId: payment.campaignId,
+    store: payment.store,
+    tier: payment.tier,
+    productId: payment.productId,
+    amountMinor: -requested,
+    currency: payment.currency,
+    amountBasis: payment.amountBasis,
+    commissionRateBps: rateBps,
+    commissionMinor: commissionMinor(-requested, rateBps),
+    periodEnd: payment.periodEnd,
+    occurredAt: input.occurredAt ?? new Date().toISOString(),
+    eventSource: GATEWAY_REFUND_SOURCE,
+    externalRef: input.paymentReference,
+  };
+
+  const { duplicates } = await appendBillingEvents(db, [event]);
+  return { ok: true, event, alreadyRecorded: duplicates.length > 0 };
 }
 
 export interface LifecycleInput {

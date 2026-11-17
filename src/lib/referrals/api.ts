@@ -25,7 +25,7 @@ import {
   requireString,
   requireWindowDays,
 } from "./security.ts";
-import { claimAttribution } from "./service.ts";
+import { claimAttribution, recordGatewayRefund } from "./service.ts";
 import {
   createCampaign,
   createInfluencer,
@@ -512,6 +512,44 @@ export async function handleReferralRequest(req: Request, action: string): Promi
       return json(
         await influencerPerformance(adminDb, influencer, rangeFrom(url), url.searchParams.get("campaignId"))
       );
+    }
+
+    // Apple and Google push their own refunds; Paynow has no refund
+    // notification, so a Paynow clawback has to be recorded deliberately or
+    // the influencer keeps commission on money that went back to the
+    // customer. Named by the payment's gateway reference rather than by
+    // account, so a mistyped reference is rejected instead of inventing
+    // negative revenue against someone who never paid it.
+    if (action === "admin/refunds/record" && req.method === "POST") {
+      await rateLimit(adminDb, `admin-write:${principal.uid}`, 60);
+      const userId = requireId(body.userId, "userId");
+      const paymentReference = requireString(body.paymentReference, "paymentReference", 200);
+      const amountMinor =
+        body.amountMinor == null ? null : Math.round(Number(body.amountMinor));
+      if (amountMinor != null && (!Number.isFinite(amountMinor) || amountMinor <= 0)) {
+        throw new ReferralError("INVALID_AMOUNT");
+      }
+
+      const result = await recordGatewayRefund(adminDb, {
+        userId,
+        paymentReference,
+        amountMinor,
+        occurredAt: body.occurredAt ? requireIsoDate(body.occurredAt, "occurredAt") : undefined,
+        actorUid: principal.uid,
+      });
+      if (!result.ok) throw new ReferralError(result.reason, result.reason === "PAYMENT_NOT_FOUND" ? 404 : 400);
+
+      await audit("refund.record", "user", userId, null, {
+        paymentReference,
+        amountMinor: result.event.amountMinor,
+        commissionMinor: result.event.commissionMinor,
+        alreadyRecorded: result.alreadyRecorded,
+      });
+      return json({
+        recorded: !result.alreadyRecorded,
+        alreadyRecorded: result.alreadyRecorded,
+        event: result.event,
+      });
     }
 
     if (action === "admin/audit" && req.method === "GET") {
