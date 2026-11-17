@@ -145,6 +145,12 @@ async function initiateSubscriptionCheckout({
               autoRenews: false,
               expiresAt: nextManualExpiry(existing?.expiresAt ?? null),
               lastEventSource: "paynow_initiate_repoll",
+              amountMinor: Math.round(Number(mostRecentData.amount ?? 0) * 100),
+              currency: mostRecentData.currency ?? "USD",
+              amountBasis: "charged",
+              // Same reference the result webhook would report, so whichever
+              // path confirms first, the payment is recorded exactly once.
+              paymentReference: mostRecentData.reference ?? null,
             });
 
             // The earlier checkout had in fact been paid, and the line above
