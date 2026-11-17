@@ -137,7 +137,7 @@ referred ones.
 | `cancellation_requested` | Auto-renew turned off, Play `CANCELED` | — |
 | `reactivation` | Auto-renew back on, Play `RESTARTED`/`RECOVERED`, or resubscribing after a lapse | — |
 | `expiration` | The paid period actually ended | — |
-| `refund` | Apple `REFUND`/`REVOKE`, Play `REVOKED` | negative |
+| `refund` | Apple `REFUND`/`REVOKE`, Play `REVOKED`, or a Paynow refund recorded by an admin | negative |
 
 ### What counts as verified
 
@@ -154,6 +154,36 @@ Only these sources produce revenue rows:
 
 A client-side "purchase succeeded" flag never reaches this ledger, because the
 ledger is only ever written from inside `writeSubscription()`.
+
+### Refunds that no store tells us about
+
+Apple and Google push refunds and revocations, so those clawbacks derive
+themselves inside `writeSubscription`. **Paynow has no refund notification at
+all**, which left a refunded Paynow subscription sitting in the ledger as
+positive revenue with the commission still payable. Record one deliberately:
+
+```bash
+node scripts/record-paynow-refund.mjs someone@example.com AFRICIN-SUB-... --apply
+# partial:
+node scripts/record-paynow-refund.mjs someone@example.com AFRICIN-SUB-... --amount=4.50 --apply
+```
+
+or `POST /api/referrals/v1/admin/refunds/record`. Both are dry-run-free in the
+sense that they refuse rather than guess:
+
+- It reverses **a payment**, not an account. The caller names the gateway
+  reference and the ledger row that payment wrote is found by it, so a typo is
+  rejected instead of inventing negative revenue against someone who never paid.
+- A refund cannot exceed what was collected.
+- Commission is clawed back at the rate the *payment* earned, not today's rate
+  — re-rating a months-old payment because the influencer has since
+  renegotiated would take back money they never received.
+- The row carries a deterministic id, so recording the same refund twice is a
+  no-op, exactly like a redelivered store webhook.
+
+It records bookkeeping only and deliberately does not touch
+`subscriptions/{userId}`: whether a refunded customer keeps access until their
+period ends is a commercial decision, not a side effect of a ledger write.
 
 ### Why nothing is double-counted
 
@@ -229,6 +259,7 @@ request shape that returns another influencer's numbers.
 | `GET` | `admin/campaigns?influencerId=` |
 | `POST` | `admin/campaigns/create` |
 | `POST` | `admin/campaigns/update` |
+| `POST` | `admin/refunds/record` (`userId`, `paymentReference`, optional `amountMinor`) |
 | `GET` | `admin/performance?influencerId=&from=&to=` |
 | `GET` | `admin/export?report=overview\|influencers\|performance\|monthly\|events&format=…` |
 | `GET` | `admin/audit` |
