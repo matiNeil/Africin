@@ -15,6 +15,23 @@ const devOrigins = process.env.NEXT_DEV_ORIGINS?.split(",")
 
 const nextConfig: NextConfig = {
   ...(devOrigins?.length ? { allowedDevOrigins: devOrigins } : {}),
+  // Apple and Google each demand their association file at an exact path under
+  // /.well-known/. These are rewrites to route handlers rather than static
+  // files in public/ so the ids and signing fingerprints stay configuration
+  // instead of being committed to a public repository — see the handlers for
+  // why an unconfigured deployment serves 404 rather than a placeholder.
+  async rewrites() {
+    return [
+      {
+        source: "/.well-known/apple-app-site-association",
+        destination: "/api/well-known/apple-app-site-association",
+      },
+      {
+        source: "/.well-known/assetlinks.json",
+        destination: "/api/well-known/assetlinks",
+      },
+    ];
+  },
   images: {
     // Firestore-sourced content/live-stream docs store absolute poster URLs
     // (see content-repo.ts / live-repo.ts) — next/image blocks any external
