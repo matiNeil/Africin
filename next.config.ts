@@ -1,6 +1,20 @@
 import type { NextConfig } from "next";
 
+// Next blocks cross-origin requests to dev-only assets, so hitting `next dev`
+// from anything other than localhost — a phone on the same wifi, say — loads
+// the HTML but none of the CSS or client JS, which renders as a blank page.
+// Listing the origin here fixes that. Kept in an env var rather than hardcoded
+// because a LAN address is per-machine and changes with DHCP:
+//
+//   NEXT_DEV_ORIGINS=192.168.0.183 npm run dev
+//
+// Dev only — Next ignores this in production builds.
+const devOrigins = process.env.NEXT_DEV_ORIGINS?.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
+  ...(devOrigins?.length ? { allowedDevOrigins: devOrigins } : {}),
   images: {
     // Firestore-sourced content/live-stream docs store absolute poster URLs
     // (see content-repo.ts / live-repo.ts) — next/image blocks any external
