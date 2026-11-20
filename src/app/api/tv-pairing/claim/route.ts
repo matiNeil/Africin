@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebase-admin";
+import { limit } from "@/lib/tv-security";
+import { TvError } from "@/lib/tv-policy";
 import { claimPairingCode } from "@/lib/tv-pairing";
 
 /**
@@ -25,11 +27,12 @@ export async function POST(req: NextRequest) {
 
     let uid: string;
     try {
-      uid = (await adminAuth.verifyIdToken(authToken)).uid;
+      uid = (await adminAuth.verifyIdToken(authToken, true)).uid;
     } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
+    await limit(`activation-claim:${uid}`, 20);
     const result = await claimPairingCode(code, uid);
     if (result === "not_found") {
       return NextResponse.json({ error: "That code doesn't exist. Check your TV screen and try again." }, { status: 404 });
@@ -43,7 +46,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("TV pairing claim error:", err);
+    if (err instanceof TvError) return NextResponse.json({ error: err.code }, { status: err.status });
+    console.error("TV pairing claim error:", err instanceof Error ? err.name : "Unknown");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

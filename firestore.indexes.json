@@ -18,7 +18,12 @@
     "system's. The pre-existing watchProgress index is listed first because",
     "`firebase deploy --only firestore:indexes` treats the file as the full",
     "desired state and offers to delete live indexes missing from it \u2014 an",
-    "omission here is a deletion prompt against a working query later."
+    "omission here is a deletion prompt against a working query later.",
+    "",
+    "The `content` indexes serve the Smart TV catalogue browser in",
+    "src/lib/tv-catalogue.ts, which combines an equality filter on `status`",
+    "with optional `type`, `genre` (array-contains) and a `titleSearch`",
+    "range, so each supported combination needs its own composite index."
   ],
   "indexes": [
     {
@@ -73,6 +78,110 @@
         },
         {
           "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "titleSearch",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "titleSearch",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "genre",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "genre",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "titleSearch",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "genre",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "content",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "genre",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "titleSearch",
           "order": "ASCENDING"
         }
       ]

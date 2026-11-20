@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       access: isEntitled,
       tier: isEntitled ? sub!.tier : null,
+      store: sub?.store ?? null,
       expiresAt: sub?.expiresAt?.toISOString() ?? null,
     });
   } catch (err) {
