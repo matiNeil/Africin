@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { LiveStream } from "@/lib/data";
+import { formatBroadcastDate } from "@/lib/premiere";
 import CountdownTimer from "@/components/CountdownTimer";
 import AppDownload from "@/components/AppDownload";
 import LiveStreamPlayer from "@/components/LiveStreamPlayer";
@@ -93,9 +94,7 @@ export default function LiveEventPageClient({ stream }: { stream: LiveStream }) 
                 <p className="text-muted text-xs leading-relaxed">
                   Any Africin plan unlocks this event and the whole catalog. It goes live on{" "}
                   <span className="text-foreground font-medium">
-                    {new Date(stream.startTime).toLocaleDateString("en-GB", {
-                      day: "numeric", month: "long", year: "numeric"
-                    })}
+                    {formatBroadcastDate(stream.startTime)}
                   </span>.
                 </p>
               </div>
