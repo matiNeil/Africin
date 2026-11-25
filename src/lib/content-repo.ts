@@ -14,6 +14,19 @@ function embedUrlFor(uid: unknown): string | undefined {
   return typeof uid === "string" && uid ? `https://${STREAM_HOST}/${uid}/iframe` : undefined;
 }
 
+// The admin panel stores a trailer as a full HLS manifest url and has never
+// written a trailerCloudflareUid, so the uid has to come out of the url. With
+// no trailer uid available, the mapping below used to fall through to
+// cloudflareUid — the uid of the *feature* — so the hero preview and the
+// "Trailer" button played the whole film.
+function trailerUidFromUrl(url: unknown): string | undefined {
+  if (typeof url !== "string") return undefined;
+  const match = url.match(
+    /(?:videodelivery\.net|cloudflarestream\.com)\/([0-9a-f]{32})(?:\/|$)/i
+  );
+  return match?.[1];
+}
+
 function toISODate(value: unknown): string | undefined {
   if (!value) return undefined;
   if (typeof value === "string") return value;
@@ -44,7 +57,11 @@ function mapContentDoc(id: string, data: DocumentData): Content {
     premiereDate: toISODate(data.premiereDate),
     featured: data.featured === true,
     createdAt: toISODate(data.createdAt),
-    videoUrl: embedUrlFor(data.trailerCloudflareUid) ?? embedUrlFor(data.cloudflareUid),
+    // Trailer first, feature only as a last resort — see trailerUidFromUrl.
+    videoUrl:
+      embedUrlFor(trailerUidFromUrl(data.trailerUrl)) ??
+      embedUrlFor(data.trailerCloudflareUid) ??
+      embedUrlFor(data.cloudflareUid),
   };
 }
 
